@@ -327,7 +327,7 @@ class OGame2(object):
         response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=fleetdispatch&action=checkTarget&ajax=1&asJson=1',
                                      data=form_data).json()
-        print(response)
+
         form_data = {'token': self.sendfleet_token}
 
         for ship in ships:
@@ -350,4 +350,4 @@ class OGame2(object):
                           'holdingtime': 0})
         response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1', data=form_data).json()
-        print(response)
+
