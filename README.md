@@ -13,6 +13,8 @@
  from __init__ import OGame2
  
  empire = OGame2(UNI, USER, PASSWORD)
+ 
+ empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)') #optional
  </pre>
  
 ### get planet id's
