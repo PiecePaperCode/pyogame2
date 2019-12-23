@@ -49,6 +49,9 @@ coordinates(1, 2, 12, destination.moon)
 coordinates(1, 2, 12, destination.debris)
 coordinates(1, 2, 12, destination.planet) or coordinates(1, 2, 12)
 ```
+<pre>
+empire.get_planet_coordinates(id)       returns list
+</pre>
 
 
 ### get resources
