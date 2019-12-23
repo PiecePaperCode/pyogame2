@@ -147,5 +147,3 @@ empire.send_fleet(mission=mission.transport,
 <pre>                 
                                         returns None
 </pre>
-
-[]: ogame.webp?raw=true "Title"
