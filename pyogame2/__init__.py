@@ -10,6 +10,9 @@ class OGame2(object):
         self.chat_token = None
         self.sendfleet_token = None
         self.session = requests.Session()
+        self.server_id = None
+        self.server_number = None
+        self.server_language = None
         if user_agent is None:
             user_agent = {
                 'User-Agent':
@@ -26,27 +29,24 @@ class OGame2(object):
                      'autologin': 'false',
                      'credentials[email]': self.username,
                      'credentials[password]': self.password}
-        self.session.post('https://lobby.ogame.gameforge.com/api/users', data=form_data)
+        logged = self.session.post('https://lobby.ogame.gameforge.com/api/users', data=form_data)
         servers = self.session.get('https://lobby.ogame.gameforge.com/api/servers').json()
-        server_number = ''
         for server in servers:
             if server['name'] == self.universe:
-                server_number = server['number']
+                self.server_number = server['number']
                 break
         accounts = self.session.get('https://lobby.ogame.gameforge.com/api/users/me/accounts').json()
-        server_id = ''
-        server_language = ''
         for account in accounts:
-            if account['server']['number'] == server_number:
-                server_id = account['id']
-                server_language = account['server']['language']
+            if account['server']['number'] == self.server_number:
+                self.server_id = account['id']
+                self.server_language = account['server']['language']
         login_link = self.session.get('https://lobby.ogame.gameforge.com/api/users/me/loginLink?'
                                       'id={}'
                                       '&server[language]={}'
                                       '&server[number]={}'
-                                      '&clickedButton=account_list'.format(server_id,
-                                                                           server_language,
-                                                                           server_number)).json()
+                                      '&clickedButton=account_list'.format(self.server_id,
+                                                                           self.server_language,
+                                                                           self.server_number)).json()
         self.session.content = self.session.get(login_link['url']).text
 
     def get_init_chatroken(self):
@@ -105,8 +105,8 @@ class OGame2(object):
         return planet_id
 
     def get_resources(self, id):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=overview&cp={}'.format(str(id))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=overview&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         marker_string = '<span id="{}" data-raw="'
 
         class resources(object):
@@ -124,8 +124,8 @@ class OGame2(object):
         return resources
 
     def get_supply(self, id):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=supplies&cp={}'.format(str(id))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=supplies&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -146,8 +146,8 @@ class OGame2(object):
         return supply_buildings
 
     def get_facilities(self, id):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'.format(str(id))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=facilities&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -174,8 +174,8 @@ class OGame2(object):
         raise Exception("function not implemented yet PLS contribute")
 
     def get_research(self):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=research&cp={}'.format(str(OGame2.get_planet_ids(self)[0]))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=research&cp={}'.format(str(self.server_number), self.server_language, str(OGame2.get_planet_ids(self)[0]))).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -204,8 +204,8 @@ class OGame2(object):
         return research_level
 
     def get_ships(self, id):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=shipyard&cp={}'.format(str(id))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=shipyard&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         marker_string = '''class="amount"
                   data-value="'''
 
@@ -235,8 +235,8 @@ class OGame2(object):
         return ships_amount
 
     def get_defences(self, id):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=defenses&cp={}'.format(str(id))).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=defenses&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         marker_string = '''class="amount"
                   data-value="'''
 
@@ -263,8 +263,9 @@ class OGame2(object):
         galaxy = coordinates[0]
         system = coordinates[1]
         form_data = {'galaxy': galaxy, 'system': system}
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=galaxyContent&ajax=1', data=form_data).text
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                     'component=galaxyContent&ajax=1'.format(str(self.server_number), self.server_language), 
+                                     data=form_data).text
         marker_string = '<td rel=\\"planet{}\\"'
         positions = []
         for position in range(1, 16):
@@ -291,7 +292,7 @@ class OGame2(object):
 
     def get_ally(self):
         ally_name = None
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=alliance').text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=alliance'.format(str(self.server_number), self.server_language)).text
         marker_string = '<meta name="ogame-alliance-name" content="'
         for re_obj in re.finditer(marker_string, response):
             ally_name = response[re_obj.start() + len(marker_string): re_obj.end() + 10].split('"')[0]
@@ -309,13 +310,13 @@ class OGame2(object):
                      'mode': 1,
                      'ajax': 1,
                      'token': self.chat_token}
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?'
-                                     'page=ajaxChat', data=form_data).json()
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                     'page=ajaxChat'.format(str(self.server_number), self.server_language), data=form_data).json()
         self.chat_token = response['newToken']
 
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10):
-        response = self.session.get('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=fleetdispatch&cp={}'.format(id)).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=fleetdispatch&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
         OGame2.get_init_sendfleetroken(self, response)
         form_data = {'token': self.sendfleet_token,
                      'am202': 1,
@@ -324,8 +325,8 @@ class OGame2(object):
                      'position': where[2],
                      'type': where[3],
                      'union': 0}
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=fleetdispatch&action=checkTarget&ajax=1&asJson=1',
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                     'component=fleetdispatch&action=checkTarget&ajax=1&asJson=1'.format(str(self.server_number), self.server_language),
                                      data=form_data).json()
 
         form_data = {'token': self.sendfleet_token}
@@ -348,6 +349,7 @@ class OGame2(object):
                           'retreatAfterDefenderRetreat': 0,
                           'union': 0,
                           'holdingtime': 0})
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1', data=form_data).json()
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                     'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'.format(str(self.server_number), self.server_language), 
+                                     data=form_data).json()
 
