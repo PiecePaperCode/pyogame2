@@ -7,6 +7,11 @@
  This lib is supposed to help write scripts and bots for your needs.
  it supports ogame_version: `7.1.0`
  
+ ## install
+ <pre>
+ Download the 2 python files from pyogame2 [__init__.py, constants.py]
+ Place them on an new folder. Create an new py file and start coding
+ </pre>
  ## functions
  ### login
  <pre>
