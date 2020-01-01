@@ -153,7 +153,7 @@ res.armor
 empire.get_ships(id)                    returns class(object) 
 
 shi = empire.get_ships(id)
-shi.light_fighter = ships_amount[0]
+shi.light_fighter
 shi.heavy_fighter
 shi.cruiser
 shi.battleship
