@@ -9,6 +9,7 @@ class OGame2(object):
         self.password = password
         self.chat_token = None
         self.sendfleet_token = None
+        self.build_token = None
         self.session = requests.Session()
         self.server_id = None
         self.server_number = None
@@ -59,11 +60,18 @@ class OGame2(object):
         for re_obj in re.finditer(marker_string, content):
             self.sendfleet_token = content[re_obj.start() + len(marker_string): re_obj.end() + 35].split('"')[1]
 
+    def get_init_build_token(self, content, component):
+        marker_string = 'component={}&modus=1&token='.format(component)
+        for re_obj in re.finditer(marker_string, content):
+            self.build_token = content[re_obj.start() + len(marker_string): re_obj.end() + 32]
+
     def get_attacked(self):
-        '''
-        <div id="attack_alert" class="tooltip eventToggle soon tpd-hideOnClickOutside"
-        <div id="attack_alert" class="tooltip noAttack"
-        '''
+        attack = 'tooltip eventToggle soon'
+        no_attack = 'tooltip noAttack'
+        if attack in self.session.content:
+            return True
+        elif no_attack in self.session.content:
+            return False
 
     def get_planet_ids(self):
         planet_ids = []
@@ -72,19 +80,6 @@ class OGame2(object):
             id = self.session.content[planet_id.start() + 11:planet_id.end() + 8]
             planet_ids.append(int(id))
         return planet_ids
-
-    def get_planet_coordinates(self, id):
-        galaxy = None
-        system = None
-        position = None
-        marker_string = 'component=galaxy&amp;cp={}'.format(str(id))
-        for coordinates in re.finditer(marker_string, self.session.content):
-            raw_coordinates = self.session.content[coordinates.start() + 37:coordinates.end() + 50]
-            coordinates = raw_coordinates.replace('&amp', '').split('&')[0].split(';')
-            galaxy = int(coordinates[0].replace('galaxy=', ''))
-            system = int(coordinates[1].replace('system=', ''))
-            position = int(coordinates[2].replace('position=', ''))
-        return [galaxy, system, position, const.destination.planet]
 
     def get_planet_names(self):
         planet_names = []
@@ -104,9 +99,35 @@ class OGame2(object):
                 break
         return planet_id
 
+    def get_moon_ids(self):
+        moon_ids = []
+        marker_string = 'data-jumpgateLevel'
+        for planet_id in re.finditer(marker_string, self.session.content):
+            id = self.session.content[planet_id.start() - 41:planet_id.end() - 51]
+            moon_ids.append(int(id))
+        return moon_ids
+
+    def get_celestial_coordinates(self, id):
+        galaxy = None
+        system = None
+        position = None
+        destination = None
+        marker_string = 'component=galaxy&amp;cp={}'.format(id)
+        for coordinates in re.finditer(marker_string, self.session.content):
+            raw_coordinates = self.session.content[coordinates.start() + 37:coordinates.end() + 50]
+            coordinates = raw_coordinates.replace('&amp', '').split('&')[0].split(';')
+            galaxy = int(coordinates[0].replace('galaxy=', ''))
+            system = int(coordinates[1].replace('system=', ''))
+            position = int(coordinates[2].replace('position=', ''))
+        if id in OGame2.get_planet_ids(self):
+            destination = const.destination.planet
+        elif id in OGame2.get_moon_ids(self):
+            destination = const.destination.moon
+        return [galaxy, system, position, destination]
+
     def get_resources(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=overview&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=overview&cp={}'.format(self.server_number, self.server_language, id)).text
         marker_string = '<span id="{}" data-raw="'
 
         class resources(object):
@@ -125,7 +146,7 @@ class OGame2(object):
 
     def get_supply(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=supplies&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=supplies&cp={}'.format(self.server_number, self.server_language, id)).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -147,7 +168,7 @@ class OGame2(object):
 
     def get_facilities(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=facilities&cp={}'.format(self.server_number, self.server_language, id)).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -175,7 +196,8 @@ class OGame2(object):
 
     def get_research(self):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=research&cp={}'.format(str(self.server_number), self.server_language, str(OGame2.get_planet_ids(self)[0]))).text
+                                    'component=research&cp={}'
+                                    .format(self.server_number, self.server_language, OGame2.get_planet_ids(self)[0])).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -205,7 +227,8 @@ class OGame2(object):
 
     def get_ships(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=shipyard&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=shipyard&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         marker_string = '''class="amount"
                   data-value="'''
 
@@ -236,7 +259,8 @@ class OGame2(object):
 
     def get_defences(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=defenses&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=defenses&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         marker_string = '''class="amount"
                   data-value="'''
 
@@ -264,8 +288,8 @@ class OGame2(object):
         system = coordinates[1]
         form_data = {'galaxy': galaxy, 'system': system}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=galaxyContent&ajax=1'.format(str(self.server_number), self.server_language), 
-                                     data=form_data).text
+                                     'component=galaxyContent&ajax=1'
+                                     .format(self.server_number, self.server_language), data=form_data).text
         marker_string = '<td rel=\\"planet{}\\"'
         positions = []
         for position in range(1, 16):
@@ -292,7 +316,8 @@ class OGame2(object):
 
     def get_ally(self):
         ally_name = None
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=alliance'.format(str(self.server_number), self.server_language)).text
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=alliance'
+                                    .format(self.server_number, self.server_language)).text
         marker_string = '<meta name="ogame-alliance-name" content="'
         for re_obj in re.finditer(marker_string, response):
             ally_name = response[re_obj.start() + len(marker_string): re_obj.end() + 10].split('"')[0]
@@ -311,28 +336,21 @@ class OGame2(object):
                      'ajax': 1,
                      'token': self.chat_token}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                     'page=ajaxChat'.format(str(self.server_number), self.server_language), data=form_data).json()
+                                     'page=ajaxChat'.format(self.server_number, self.server_language),
+                                     data=form_data).json()
         self.chat_token = response['newToken']
 
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=fleetdispatch&cp={}'.format(str(self.server_number), self.server_language, str(id))).text
+                                    'component=fleetdispatch&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         OGame2.get_init_sendfleetroken(self, response)
-        form_data = {'token': self.sendfleet_token,
-                     'am202': 1,
-                     'galaxy': where[0],
-                     'system': where[1],
-                     'position': where[2],
-                     'type': where[3],
-                     'union': 0}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=fleetdispatch&action=checkTarget&ajax=1&asJson=1'.format(str(self.server_number), self.server_language),
-                                     data=form_data).json()
 
         form_data = {'token': self.sendfleet_token}
 
         for ship in ships:
-            form_data.update({ship[0]: ship[1]})
+            ship_type = 'am{}'.format(ship[0])
+            form_data.update({ship_type: ship[1]})
 
         form_data.update({'galaxy': where[0],
                           'system': where[1],
@@ -349,7 +367,27 @@ class OGame2(object):
                           'retreatAfterDefenderRetreat': 0,
                           'union': 0,
                           'holdingtime': 0})
+
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'.format(str(self.server_number), self.server_language), 
-                                     data=form_data).json()
+                                     'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'
+                                     .format(self.server_number, self.server_language), data=form_data).json()
+        return response['success']
+
+    def build(self, what, id):
+        type = what[0]
+        amount = what[1]
+        component = what[2]
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component={}&cp={}'
+                                    .format(self.server_number, self.server_language, component, id)).text
+        OGame2.get_init_build_token(self, response, component)
+
+        build_url = 'https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
+                    'component={}&modus=1&token={}&type={}&menge={}'\
+                    .format(self.server_number, self.server_language, component, self.build_token, type, amount)
+        response = self.session.get(build_url)
+        print(response.text)
+
+    def research(self, research, id):
+        OGame2.build(self, research, id)
 
