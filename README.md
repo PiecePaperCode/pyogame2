@@ -19,7 +19,7 @@
  
 ### get attacked
 <pre>
-empire.get_attacked()                          returns bool 
+empire.get_attacked()                   returns bool 
 </pre>
  
 ### get planet id's
