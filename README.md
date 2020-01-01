@@ -128,6 +128,7 @@ empire.get_traider(id)                  returns Exception("function not implemen
 ### get research
 <pre>
 empire.get_research()                   returns class(object) 
+
 res = empire.get_research()
 res.energy
 res.laser
