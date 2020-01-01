@@ -67,12 +67,23 @@ works with planet's and moon's
 empire.get_celestial_coordinates(id)    returns list
 </pre>
 
+### resources
+<pre>
+resources have the format [metal, crystal, deuterium]
+darkmatter & energy are irrelevant, because you cant transport these.
+It is used for transport and market functions
+
+from constants import resources
+res = resources(metal=1, crystal=2, deuterium=3)
+[1, 2, 3]
+</pre>
 
 ### get resources
 <pre>
 empire.get_resources(id)                returns class(object)
 
 res = empire.get_resources(id)
+res.resources
 res.metal
 res.crystal
 res.deuterium
@@ -117,7 +128,29 @@ empire.get_moon_facilities(id)          returns class(object)
 
 ### get marketplace
 <pre>
-empire.get_marketplace(id)              returns Exception("function not implemented yet PLS contribute")
+Use this function to get all offerings from the market.
+resourses will be returned in the resourse's format
+ships will be returned in the ship's format
+</pre>
+```python
+for bid in empire.get_marketplace(id, page_nr):
+    if bid.is_ships:
+        print(bid.id, bid.offer, bid.price)
+        print(ships.get_ship_name(bid.offer), ships.get_ship_amount(bid.offer))
+    if bid.is_resources:
+        print(bid.id, bid.offer, bid.price) 
+    print(bid.is_possible)
+
+>>>1234 (204, '508', 'shipyard') [0, '1500000', 0]
+>>>light_fighter 508
+>>>True
+>>>1235 ['10000000', 0, 0] [0, '8000000', 0]
+>>>False
+```
+
+### buy marketplace
+<pre>
+empire.buy_marketplace(bid.id, id)      returns bool
 </pre>
 
 ### get traider

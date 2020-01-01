@@ -109,3 +109,26 @@ class ships(object):
     def colonyShip(self): return 208, self, 'shipyard'
     def recycler(self): return 209, self, 'shipyard'
     def espionage_probe(self): return 210, self, 'shipyard'
+
+    def get_ship_name(ships):
+        if ships[0] == 204: return 'light_fighter'
+        if ships[0] == 205: return 'heavy_fighter'
+        if ships[0] == 206: return 'cruiser'
+        if ships[0] == 207: return 'battleship'
+        if ships[0] == 215: return 'interceptor'
+        if ships[0] == 211: return 'bomber'
+        if ships[0] == 213: return 'destroyer'
+        if ships[0] == 214: return 'deathstar'
+        if ships[0] == 218: return 'reaper'
+        if ships[0] == 219: return 'explorer'
+        if ships[0] == 202: return 'small_transporter'
+        if ships[0] == 203: return 'large_transporter'
+        if ships[0] == 208: return 'colonyShip'
+        if ships[0] == 209: return 'recycler'
+        if ships[0] == 210: return 'espionage_probe'
+
+    def get_ship_amount(ships):
+        return ships[1]
+
+def resources(metal=0, cristal=0, deuterium=0):
+    return [metal, cristal, deuterium]

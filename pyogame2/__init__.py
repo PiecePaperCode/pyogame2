@@ -1,5 +1,6 @@
+import re
+import requests
 import constants as const
-import requests, re
 
 
 class OGame2(object):
@@ -127,7 +128,8 @@ class OGame2(object):
 
     def get_resources(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=overview&cp={}'.format(self.server_number, self.server_language, id)).text
+                                    'component=overview&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         marker_string = '<span id="{}" data-raw="'
 
         class resources(object):
@@ -141,12 +143,13 @@ class OGame2(object):
                 darkmatter = response[re_obj.start() + 42: re_obj.end() + 20].split('"')[0].split('.')[0]
             for re_obj in re.finditer(marker_string.format('resources_energy'), response):
                 energy = response[re_obj.start() + 38: re_obj.end() + 20].split('"')[0].split('.')[0]
-
+            resources = [metal, crystal, deuterium]
         return resources
 
     def get_supply(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=supplies&cp={}'.format(self.server_number, self.server_language, id)).text
+                                    'component=supplies&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -168,7 +171,8 @@ class OGame2(object):
 
     def get_facilities(self, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'.format(self.server_number, self.server_language, id)).text
+                                    'component=facilities&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -188,8 +192,108 @@ class OGame2(object):
 
         return facilities_buildings
 
-    def get_marketplace(self, id):
-        raise Exception("function not implemented yet PLS contribute")
+    def get_moon_facilities(self, id):
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=facilities&cp={}'
+                                    .format(self.server_number, self.server_language, id)).text
+        marker_string = '''class="level"
+                  data-value="'''
+
+        class moon_facilities_buildings(object):
+            facilities_buildings = []
+            for re_obj in re.finditer(marker_string.format(marker_string), response):
+                facilities_buildings.append(int(response[re_obj.start() + len(marker_string):
+                                                         re_obj.end() + 3].split('"')[0]))
+            robotics_factory = facilities_buildings[0]
+            shipyard = facilities_buildings[1]
+            moon_base = facilities_buildings[2]
+            sensor_phalanx = facilities_buildings[3]
+            jump_gate = facilities_buildings[4]
+
+        return moon_facilities_buildings
+
+    def get_marketplace(self, id, page):
+        biddings = []
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
+                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+                                    'pagination%5Bpage%5D={}&cp={}' \
+                                    .format(self.server_number, self.server_language, page, id)).json()
+
+        def get_item_type(item):
+            type = None
+            if 'sprite ship small ' in item:
+                type = 'ship', int(item[29:32])
+            elif 'metal' in item:
+                type = 'resources', 'metal'
+            elif 'crystal' in item:
+                type = 'resources', 'crystal'
+            elif 'deuterium' in item:
+                type = 'resources', 'deuterium'
+            return type
+
+        items = response['content']['marketplace/marketplace_items_buying'].split('<div class="row item og-hline">')
+        del items[0]
+        for item in items:
+            id_int = item.find('<a data-itemid=')
+            ships_resources_marker_string = 'class="sprite '
+            class_sprite = []
+            for re_obj in re.finditer(ships_resources_marker_string, item):
+                class_sprite.append(item[re_obj.start(): re_obj.end() + 40])
+            to_buy_item_type = get_item_type(class_sprite[0])
+            to_pay_item_type = get_item_type(class_sprite[1])
+
+            quantity_marker_string = 'text quantity'
+            text_quantity = []
+            for re_obj in re.finditer(quantity_marker_string, item):
+                text_quantity.append(item[re_obj.start(): re_obj.end() + 40])
+            to_buy_item_amount = text_quantity[0].split('>')[1].split('<')[0].replace('.', '')
+            to_pay_item_amount = text_quantity[1].split('>')[1].split('<')[0].replace('.', '')
+
+            class bid:
+                id = item[id_int + 16: id_int + 25].split('"')[0]
+                offer = None
+                price = None
+                is_ships = False
+                is_resources = False
+                is_possible = False
+                if to_buy_item_type[0] == 'ship':
+                    is_ships = True
+                    offer = to_buy_item_type[1], to_buy_item_amount, 'shipyard'
+                else:
+                    is_resources = True
+                    if 'metal' in to_buy_item_type[1]:
+                        offer = const.resources(metal=to_buy_item_amount)
+                    elif 'crystal' in to_buy_item_type[1]:
+                        offer = const.resources(cristal=to_buy_item_amount)
+                    elif 'deuterium' in to_buy_item_type[1]:
+                        offer = const.resources(deuterium=to_buy_item_amount)
+
+                if 'metal' in to_pay_item_type[1]:
+                    price = const.resources(metal=to_pay_item_amount)
+                elif 'crystal' in to_pay_item_type[1]:
+                    price = const.resources(cristal=to_pay_item_amount)
+                elif 'deuterium' in to_pay_item_type[1]:
+                    price = const.resources(deuterium=to_pay_item_amount)
+
+                if 'enabled' in class_sprite[2]:
+                    is_possible = True
+            biddings.append(bid)
+        return biddings
+
+    def buy_marketplace(self, market_id, id):
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
+                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+                                    'pagination%5Bpage%5D={}&cp={}' \
+                                    .format(self.server_number, self.server_language, 1, id)).json()
+
+        form_data = {'marketItemId': market_id}
+        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
+                                     'component=marketplace&tab=buying&action=acceptRequest&asJson=1',
+                                     data=form_data).json()
+        if response['status'] == 'success':
+            return True
+        else:
+            return False
 
     def get_traider(self, id):
         raise Exception("function not implemented yet PLS contribute")
@@ -197,7 +301,8 @@ class OGame2(object):
     def get_research(self):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                     'component=research&cp={}'
-                                    .format(self.server_number, self.server_language, OGame2.get_planet_ids(self)[0])).text
+                                    .format(self.server_number, self.server_language,
+                                            OGame2.get_planet_ids(self)[0])).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -383,11 +488,9 @@ class OGame2(object):
         OGame2.get_init_build_token(self, response, component)
 
         build_url = 'https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
-                    'component={}&modus=1&token={}&type={}&menge={}'\
-                    .format(self.server_number, self.server_language, component, self.build_token, type, amount)
+                    'component={}&modus=1&token={}&type={}&menge={}' \
+            .format(self.server_number, self.server_language, component, self.build_token, type, amount)
         response = self.session.get(build_url)
-        print(response.text)
 
     def research(self, research, id):
         OGame2.build(self, research, id)
-
