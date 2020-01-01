@@ -1,5 +1,5 @@
 # pyogame2
-![picture](../GitHub/pyogame2/ogame.png)
+![picture](ogame.png)
 
  OGame is a browser-based, money-management and space-war themed massively multiplayer online browser game with over 
  two million accounts.
