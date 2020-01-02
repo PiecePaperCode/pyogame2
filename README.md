@@ -185,6 +185,12 @@ empire.submit_marketplace(offer=ships.large_transporter(10),
                           id=id)
 </pre>
 
+### collect marketplace
+<pre>
+it will collect all your orders at once
+empire.collect_marketplace()            returns bool
+</pre>
+
 ### get traider
 <pre>
 empire.get_traider(id)                  returns Exception("function not implemented yet PLS contribute")
