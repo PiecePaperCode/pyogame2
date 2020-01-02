@@ -158,6 +158,27 @@ for bid in empire.get_marketplace(id, page_nr):
 empire.buy_marketplace(bid.id, id)      returns bool
 </pre>
 
+### submit marketplace
+<pre>
+you can sell resources and ships. 
+Note that you can sell one ship or one resources at at time.
+run a for loop if you wanna stack offerings.
+If the Market accepts your offer depends on your price and availability on your id_planet
+
+empire.submit_marketplace(offer, 
+                          price, 
+                          id)           returns bool
+
+empire.submit_marketplace(offer=resources(metal=100),
+                          price=resources(crystal=50),
+                          id=id
+
+
+empire.submit_marketplace(offer=ships.large_transporter(10),
+                          price=resources(crystal=96000),
+                          id=id)
+</pre>
+
 ### get traider
 <pre>
 empire.get_traider(id)                  returns Exception("function not implemented yet PLS contribute")
@@ -258,12 +279,13 @@ empire.send_message(player_id, msg)     returns None
 ### send fleet
 ```python
 from pyogame2.constants import coordinates, ships, mission, speed
-empire.send_fleet(mission=mission.transport,
+empire.send_fleet(mission=mission.expedition,
                   id=id,
                   where=coordinates(1, 12, 16),
                   ships=[ships.small_transporter(1), ships.bomber(1)],
                   resources=[0, 0, 0],  # optional default no resources
-                  speed=speed.max)      # optional default speed.max
+                  speed=speed.max,      # optional default speed.max
+                  holdingtime=2)        # optional default 0 will be needed by expeditions
 ```
 <pre>                 
                                         returns bool

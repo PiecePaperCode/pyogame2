@@ -1,6 +1,4 @@
 class destination(object):
-    """coordinate format [galaxy, system, position, type]
-       type1=planet; type2=debris; type3=moon"""
     planet = 1
     debris = 2
     moon = 3
@@ -110,25 +108,37 @@ class ships(object):
     def recycler(self): return 209, self, 'shipyard'
     def espionage_probe(self): return 210, self, 'shipyard'
 
-    def get_ship_name(ships):
-        if ships[0] == 204: return 'light_fighter'
-        if ships[0] == 205: return 'heavy_fighter'
-        if ships[0] == 206: return 'cruiser'
-        if ships[0] == 207: return 'battleship'
-        if ships[0] == 215: return 'interceptor'
-        if ships[0] == 211: return 'bomber'
-        if ships[0] == 213: return 'destroyer'
-        if ships[0] == 214: return 'deathstar'
-        if ships[0] == 218: return 'reaper'
-        if ships[0] == 219: return 'explorer'
-        if ships[0] == 202: return 'small_transporter'
-        if ships[0] == 203: return 'large_transporter'
-        if ships[0] == 208: return 'colonyShip'
-        if ships[0] == 209: return 'recycler'
-        if ships[0] == 210: return 'espionage_probe'
+    def is_ship(ship):
+        if ship[2] == 'shipyard': 
+            return True
+        else: 
+            return False
 
-    def get_ship_amount(ships):
-        return ships[1]
+    def get_ship_name(ship):
+        if ships.is_ship(ship):
+            if ship[0] == 204: return 'light_fighter'
+            if ship[0] == 205: return 'heavy_fighter'
+            if ship[0] == 206: return 'cruiser'
+            if ship[0] == 207: return 'battleship'
+            if ship[0] == 215: return 'interceptor'
+            if ship[0] == 211: return 'bomber'
+            if ship[0] == 213: return 'destroyer'
+            if ship[0] == 214: return 'deathstar'
+            if ship[0] == 218: return 'reaper'
+            if ship[0] == 219: return 'explorer'
+            if ship[0] == 202: return 'small_transporter'
+            if ship[0] == 203: return 'large_transporter'
+            if ship[0] == 208: return 'colonyShip'
+            if ship[0] == 209: return 'recycler'
+            if ship[0] == 210: return 'espionage_probe'
 
-def resources(metal=0, cristal=0, deuterium=0):
-    return [metal, cristal, deuterium]
+    def get_ship_amount(ship):
+        if ships.is_ship(ship):
+            return ship[1]
+    
+    def get_ship_id(ship):
+        if ships.is_ship(ship):
+            return ship[0]
+
+def resources(metal=0, crystal=0, deuterium=0):
+    return [metal, crystal, deuterium]

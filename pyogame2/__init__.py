@@ -295,6 +295,47 @@ class OGame2(object):
         else:
             return False
 
+    def submit_marketplace(self, offer, price, id):
+        ItemId = None
+        quantity = None
+        priceType = None
+        price_form = None
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=marketplace&tab=create_offer&cp={}'
+                                    .format(self.server_number, self.server_language, id))
+
+        if const.ships.is_ship(offer):
+            itemType = 1
+            ItemId = const.ships.get_ship_id(offer)
+            quantity = const.ships.get_ship_amount(offer)
+        else:
+            itemType = 2
+            for i, res in enumerate(offer):
+                if res != 0:
+                    ItemId = i+1
+                    quantity = res
+                    break
+        #ill fix this later in DRY
+        for i, res in enumerate(price):
+            if res != 0:
+                priceType = i+1
+                price_form = res
+                break
+
+        form_data = {'marketItemType': 2,
+                     'itemType': itemType,
+                     'itemId': ItemId,
+                     'quantity': quantity,
+                     'priceType': priceType,
+                     'price': price_form}
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                     'component=marketplace&tab=create_offer&action=submitOffer&asJson=1'
+                                     .format(self.server_number, self.server_language), data=form_data).json()
+        if response['status'] == 'success':
+            return True
+        else:
+            return False
+
     def get_traider(self, id):
         raise Exception("function not implemented yet PLS contribute")
 
@@ -445,7 +486,7 @@ class OGame2(object):
                                      data=form_data).json()
         self.chat_token = response['newToken']
 
-    def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10):
+    def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10, holdingtime=0):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                     'component=fleetdispatch&cp={}'
                                     .format(self.server_number, self.server_language, id)).text
@@ -471,7 +512,7 @@ class OGame2(object):
                           'speed': speed,
                           'retreatAfterDefenderRetreat': 0,
                           'union': 0,
-                          'holdingtime': 0})
+                          'holdingtime': holdingtime})
 
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'
