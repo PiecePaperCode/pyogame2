@@ -15,7 +15,7 @@ pip install pyogame2
 ### login
 <pre>
 from pyogame2 import OGame2
-from pyogame2.pyogame2.constants import destination, coordinates, ships, mission, speed, buildings
+from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings
  
 empire = OGame2(UNI, USER, PASSWORD)
  
