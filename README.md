@@ -1,26 +1,26 @@
 # pyogame2
 ![picture](ogame.png)
 
- OGame is a browser-based, money-management and space-war themed massively multiplayer online browser game with over 
- two million accounts.
+OGame is a browser-based, money-management and space-war themed massively multiplayer online browser game with over 
+two million accounts.
+
+This lib is supposed to help write scripts and bots for your needs.
+it supports ogame_version: `7.1.0`
+
+## install
+<pre>
+pip install pyogame2
+</pre>
+## functions
+### login
+<pre>
+from pyogame2 import OGame2
+from pyogame2.pyogame2.constants import destination, coordinates, ships, mission, speed, buildings
  
- This lib is supposed to help write scripts and bots for your needs.
- it supports ogame_version: `7.1.0`
+empire = OGame2(UNI, USER, PASSWORD)
  
- ## install
- <pre>
- Download the 2 python files from pyogame2 [__init__.py, constants.py]
- Place them on an new folder. Create an new py file and start coding
- </pre>
- ## functions
- ### login
- <pre>
- from __init__ import OGame2
- 
- empire = OGame2(UNI, USER, PASSWORD)
- 
- empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)') #optional
- </pre>
+empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)') #optional
+</pre>
  
 ### get attacked
 <pre>
@@ -49,14 +49,14 @@ coordinates have the format [galaxy, system, position, destination]
 
 destination is referred to planet moon or debris on that coordinate planet=1 debris=2 moon=3
 for example [1,200,16,3] = galaxy=1, system=200, position=16, destination=3 for moon
-with from constants import destination the process is much more readable.
+with from pyogame2.constants import destination the process is much more readable.
 
 when you dont give it an destination it will default to planet
 
                                         returns list
 </pre>
 ```python
-from constants import coordinates, destination
+from pyogame2.constants import coordinates, destination
 pos = coordinates(galaxy=1,
                   system=2,
                   position=12,
@@ -78,7 +78,7 @@ resources have the format [metal, crystal, deuterium]
 darkmatter & energy are irrelevant, because you cant transport these.
 It is used for transport and market functions
 
-from constants import resources
+from pyogame2.constants import resources
 res = resources(metal=1, crystal=2, deuterium=3)
 [1, 2, 3]
 </pre>
@@ -257,7 +257,7 @@ empire.send_message(player_id, msg)     returns None
 
 ### send fleet
 ```python
-from constants import coordinates, ships, mission, speed
+from pyogame2.constants import coordinates, ships, mission, speed
 empire.send_fleet(mission=mission.transport,
                   id=id,
                   where=coordinates(1, 12, 16),
@@ -272,7 +272,7 @@ empire.send_fleet(mission=mission.transport,
 ### build
 Buildings
 ```python
-from constants import buildings
+from pyogame2.constants import buildings
 empire.build(what=buildings.alliance_depot, 
              id=id)
 
@@ -316,7 +316,7 @@ buildings.jump_gate
 ```
 Ships
 ```python
-from constants import ships
+from pyogame2.constants import ships
 empire.build(what=ships.bomber(10), 
              id=id)
 
@@ -342,7 +342,7 @@ ships.espionage_probe(int)
 
 ### research
 ```python
-from constants import research
+from pyogame2.constants import research
 empire.research(what=research.energy, 
              id=id)
 
