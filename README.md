@@ -6,9 +6,15 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
+version `7.1.0` `v1`
 
 ## install
 <pre>
+pip install pyogame2
+</pre>
+update
+<pre>
+pip uninstall pyogame2
 pip install pyogame2
 </pre>
 ## functions
