@@ -170,7 +170,8 @@ you can sell resources and ships.
 Note that you can sell one ship or one resources at at time.
 run a for loop if you wanna stack offerings.
 If the Market accepts your offer depends on your price and availability on your id_planet
-
+</pre>
+<pre>
 empire.submit_marketplace(offer, 
                           price, 
                           id)           returns bool
@@ -183,6 +184,14 @@ empire.submit_marketplace(offer=resources(metal=100),
 empire.submit_marketplace(offer=ships.large_transporter(10),
                           price=resources(crystal=96000),
                           id=id)
+</pre>
+
+### collect marketplace
+<pre>
+it will collect all your orders at once that are not collected yet
+</pre>
+<pre>
+empire.collect_marketplace()            returns bool
 </pre>
 
 ### get traider

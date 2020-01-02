@@ -144,6 +144,7 @@ class OGame2(object):
             for re_obj in re.finditer(marker_string.format('resources_energy'), response):
                 energy = response[re_obj.start() + 38: re_obj.end() + 20].split('"')[0].split('.')[0]
             resources = [metal, crystal, deuterium]
+
         return resources
 
     def get_supply(self, id):
@@ -277,6 +278,7 @@ class OGame2(object):
 
                 if 'enabled' in class_sprite[2]:
                     is_possible = True
+
             biddings.append(bid)
         return biddings
 
@@ -312,13 +314,13 @@ class OGame2(object):
             itemType = 2
             for i, res in enumerate(offer):
                 if res != 0:
-                    ItemId = i+1
+                    ItemId = i + 1
                     quantity = res
                     break
-        #ill fix this later in DRY
+        # ill fix this later in DRY
         for i, res in enumerate(price):
             if res != 0:
-                priceType = i+1
+                priceType = i + 1
                 price_form = res
                 break
 
@@ -331,6 +333,31 @@ class OGame2(object):
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=marketplace&tab=create_offer&action=submitOffer&asJson=1'
                                      .format(self.server_number, self.server_language), data=form_data).json()
+        if response['status'] == 'success':
+            return True
+        else:
+            return False
+
+    def collect_marketplace(self):
+        to_collect_market_ids = []
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                    'component=marketplace&tab=history_buying&action=fetchHistoryBuyingItems&ajax=1&'
+                                    'pagination%5Bpage%5D=1'
+                                    .format(self.server_number, self.server_language, OGame2.get_planet_ids(self)[0])) \
+                                    .json()
+        items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
+        del items[0]
+        for item in items:
+            if 'buttons small enabled collectItem' in item:
+                to_collect_market_ids.append(int(item[1:10].split('"')[0]))
+
+        response['status'] = False
+        for id in to_collect_market_ids:
+            form_data = {'marketTransactionId': id}
+            response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
+                                         'component=marketplace&action=collectItem&asJson=1'
+                                         .format(self.server_number, self.server_language), data=form_data).json()
+
         if response['status'] == 'success':
             return True
         else:
