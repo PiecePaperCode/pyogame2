@@ -1,6 +1,6 @@
 import re
 import requests
-import constants as const
+import pyogame2.constants as const
 
 
 class OGame2(object):
@@ -265,14 +265,14 @@ class OGame2(object):
                     if 'metal' in to_buy_item_type[1]:
                         offer = const.resources(metal=to_buy_item_amount)
                     elif 'crystal' in to_buy_item_type[1]:
-                        offer = const.resources(cristal=to_buy_item_amount)
+                        offer = const.resources(crystal=to_buy_item_amount)
                     elif 'deuterium' in to_buy_item_type[1]:
                         offer = const.resources(deuterium=to_buy_item_amount)
 
                 if 'metal' in to_pay_item_type[1]:
                     price = const.resources(metal=to_pay_item_amount)
                 elif 'crystal' in to_pay_item_type[1]:
-                    price = const.resources(cristal=to_pay_item_amount)
+                    price = const.resources(crystal=to_pay_item_amount)
                 elif 'deuterium' in to_pay_item_type[1]:
                     price = const.resources(deuterium=to_pay_item_amount)
 
