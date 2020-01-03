@@ -1,6 +1,11 @@
 import re
 import requests
-import pyogame2.constants as const
+
+try:
+    import constants as const
+except Exception as e:
+    # DEBUG So it works on Local Download or PIP install
+    import pyogame2.constants as const
 
 
 class OGame2(object):
@@ -153,20 +158,60 @@ class OGame2(object):
                                     .format(self.server_number, self.server_language, id)).text
         marker_string = '''class="level"
                   data-value="'''
+        supply_buildings = []
+        for re_obj in re.finditer(marker_string.format(marker_string), response):
+            supply_buildings.append(int(response[re_obj.start() + len(marker_string):
+                                                 re_obj.end() + 3].split('"')[0]))
+
+        class metal_mine_class:
+            level = supply_buildings[0]
+            is_possible = False
+            if '''data-technology="1"\n    data-status="on"''' in response: is_possible = True
+
+        class crystal_mine_class:
+            level = supply_buildings[1]
+            is_possible = False
+            if 'technology="2"\n    data-status="on"' in response: is_possible = True
+
+        class deuterium_mine_class:
+            level = supply_buildings[2]
+            is_possible = False
+            if 'technology="3"\n    data-status="on"' in response: is_possible = True
+
+        class solar_plant_class:
+            level = supply_buildings[3]
+            is_possible = False
+            if 'technology="4"\n    data-status="on"' in response: is_possible = True
+
+        class fusion_plant_class:
+            level = supply_buildings[4]
+            is_possible = False
+            if 'technology="12"\n    data-status="on"' in response: is_possible = True
+
+        class metal_storage_class:
+            level = supply_buildings[5]
+            is_possible = False
+            if 'technology="22"\n    data-status="on"' in response: is_possible = True
+
+        class crystal_storage_class:
+            level = supply_buildings[6]
+            is_possible = False
+            if 'technology="23"\n    data-status="on"' in response: is_possible = True
+
+        class deuterium_storage_class:
+            level = supply_buildings[7]
+            is_possible = False
+            if 'technology="24"\n    data-status="on"' in response: is_possible = True
 
         class supply_buildings(object):
-            supply_buildings = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                supply_buildings.append(int(response[re_obj.start() + len(marker_string):
-                                                     re_obj.end() + 3].split('"')[0]))
-            metal_mine = supply_buildings[0]
-            crystal_mine = supply_buildings[1]
-            deuterium_mine = supply_buildings[2]
-            solar_plant = supply_buildings[3]
-            fusion_plant = supply_buildings[4]
-            metal_storage = supply_buildings[5]
-            crystal_storage = supply_buildings[6]
-            deuterium_storage = supply_buildings[7]
+            metal_mine = metal_mine_class
+            crystal_mine = crystal_mine_class
+            deuterium_mine = deuterium_mine_class
+            solar_plant = solar_plant_class
+            fusion_plant = fusion_plant_class
+            metal_storage = metal_storage_class
+            crystal_storage = crystal_storage_class
+            deuterium_storage = deuterium_storage_class
 
         return supply_buildings
 
@@ -340,23 +385,30 @@ class OGame2(object):
 
     def collect_marketplace(self):
         to_collect_market_ids = []
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=marketplace&tab=history_buying&action=fetchHistoryBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D=1'
-                                    .format(self.server_number, self.server_language, OGame2.get_planet_ids(self)[0])) \
-                                    .json()
-        items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
-        del items[0]
-        for item in items:
-            if 'buttons small enabled collectItem' in item:
-                to_collect_market_ids.append(int(item[1:10].split('"')[0]))
+        history_pages = ['history_buying', 'history_selling']
+        action = ['fetchHistoryBuyingItems', 'fetchHistorySellingItems']
+        collect = ['collectItem', 'collectPrice']
+        for page, action, collect in zip(history_pages, action, collect):
+            response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                        'component=marketplace&tab={}&action={}&ajax=1&'
+                                        'pagination%5Bpage%5D=1'
+                                        .format(self.server_number, self.server_language,
+                                                page, action, OGame2.get_planet_ids(self)[0])) \
+                .json()
+            items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
+            del items[0]
+            for item in items:
+                if 'buttons small enabled' in item:
+                    to_collect_market_ids.append(int(item[1:10].split('"')[0]))
 
-        response['status'] = False
-        for id in to_collect_market_ids:
-            form_data = {'marketTransactionId': id}
-            response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
-                                         'component=marketplace&action=collectItem&asJson=1'
-                                         .format(self.server_number, self.server_language), data=form_data).json()
+            response['status'] = False
+            for id in to_collect_market_ids:
+                form_data = {'marketTransactionId': id}
+                response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
+                                             'component=marketplace&action={}&asJson=1'
+                                             .format(self.server_number, self.server_language, collect),
+                                             data=form_data).json()
+            print(to_collect_market_ids, response)
 
         if response['status'] == 'success':
             return True
