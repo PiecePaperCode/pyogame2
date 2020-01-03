@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v3`
+version `7.1.0` `v4`
 
 ## install
 <pre>
@@ -17,6 +17,14 @@ update
 pip uninstall pyogame2
 pip install pyogame2
 </pre>
+dont want to wait for new updates download direct from the develop branch
+<pre>
+pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
+</pre>
+
+## Discord
+[Join Discord](https://discord.gg/CeBDgnR")
+
 ## functions
 ### login
 <pre>
@@ -107,14 +115,17 @@ res.energy                              returns int
 empire.get_supply(id)                   returns class(object)
 
 sup = empire.get_supply(id)
-sup.metal_mine
+
+sup.metal_mine.level                    returns int
+sup.metal_mine.is_possible              returns bool (possible to build)
+
 sup.crystal_mine
 sup.deuterium_mine
 sup.solar_plant
 sup.fusion_plant 
 sup.metal_storage
 sup.crystal_storage
-sup.deuterium_storage                   returns int
+sup.deuterium_storage                   returns class(object)
 </pre>
 
 ### get facilities
@@ -188,7 +199,7 @@ empire.submit_marketplace(offer=ships.large_transporter(10),
 
 ### collect marketplace
 <pre>
-it will collect all your orders at once that are not collected yet
+it will collect all your orders at once that are not collected yet buy & sell orders
 </pre>
 <pre>
 empire.collect_marketplace()            returns bool

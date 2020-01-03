@@ -131,6 +131,7 @@ class ships(object):
             if ship[0] == 208: return 'colonyShip'
             if ship[0] == 209: return 'recycler'
             if ship[0] == 210: return 'espionage_probe'
+            if ship[0] == 217: return 'crawler'
 
     def get_ship_amount(ship):
         if ships.is_ship(ship):
