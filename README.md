@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v3`
+version `7.1.0` `v4`
 
 ## install
 <pre>
@@ -21,6 +21,9 @@ dont want to wait for new updates download direct from the develop branch
 <pre>
 pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 </pre>
+
+## Discord
+[Join Discord](https://discord.gg/CeBDgnR")
 
 ## functions
 ### login
