@@ -23,7 +23,7 @@ pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 </pre>
 
 ## Discord
-[Join Discord](https://discord.gg/CeBDgnR")
+[Join Discord](https://discord.gg/CeBDgnR)
 
 ## functions
 ### login
