@@ -29,7 +29,7 @@ pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 ### login
 <pre>
 from pyogame2 import OGame2
-from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings
+from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings, status
  
 empire = OGame2(UNI, USER, PASSWORD)
  
@@ -276,11 +276,16 @@ def.missile_interplanetary
 
 ### get galaxy
 <pre>
-empire.get_galaxy(coordinates)          returns list in list
-
-galaxy = empire.get_galaxy(coordinates)
-galaxy = [[player1, coordinates, planet_name], [player2, coordinates, planet_name]]
+empire.get_galaxy(coordinates)          returns list of class(object)
 </pre>
+```python
+for planet in empire.get_galaxy(coordinates(1, 23)):
+    print(planet.list)                  #returns all infos as a list
+    print(planet.planet_name, planet.coordinates, planet.player, planet.status, planet.moon)
+    if planet.status == status.longinactive:
+        #Farm Inactive
+```        
+
 
 ### get ally
 <pre>

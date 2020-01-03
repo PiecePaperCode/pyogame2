@@ -408,8 +408,6 @@ class OGame2(object):
                                              'component=marketplace&action={}&asJson=1'
                                              .format(self.server_number, self.server_language, collect),
                                              data=form_data).json()
-            print(to_collect_market_ids, response)
-
         if response['status'] == 'success':
             return True
         else:
@@ -514,29 +512,43 @@ class OGame2(object):
         form_data = {'galaxy': galaxy, 'system': system}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=galaxyContent&ajax=1'
-                                     .format(self.server_number, self.server_language), data=form_data).text
-        marker_string = '<td rel=\\"planet{}\\"'
-        positions = []
-        for position in range(1, 16):
-            if response.find(marker_string.format(str(position))) != -1:
-                positions.append(position)
-
-        marker_string = '<h1>Planet:'
-        planet_name = []
-        for re_obj in re.finditer(marker_string, response):
-            planet_name.append(response[re_obj.start() + 39: re_obj.end() + 50].split('<')[0])
-
-        marker_string = '"status_abbr_'
-        planet_player = []
-        for re_obj in re.finditer(marker_string, response):
-            raw_player = response[re_obj.start() + 0: re_obj.end() + 40]
-            if '<' in raw_player:
-                planet_player.append(raw_player.split('>')[1].split('<')[0])
-
-        for pos, player, planet in zip(positions, planet_player, planet_name):
-            planet_info.append([player,
-                                [galaxy, system, pos, const.destination.planet],
-                                planet])
+                                     .format(self.server_number, self.server_language), data=form_data).json()
+        planets = response['galaxy'].split('data-planet-id=')
+        del planets[0]
+        for planet in planets:
+            coordinates_raw = planet.split('[')[1].split(']')[0].split(':')
+            class planet_class:
+                planet_name = planet.split('<h1>Planet:')[1][26:50].split('<')[0]
+                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]), int(coordinates_raw[2]))
+                player = None
+                status = None
+                if '<span class="status_abbr_active">' in planet:
+                    player = planet.split('<span class="status_abbr_active">')[1].split('<')[0]
+                    status = 'active'
+                if '<span class="status_abbr_inactive">' in planet:
+                    player = planet.split('<span class="status_abbr_inactive">')[1].split('<')[0]
+                    status = 'inactive'
+                elif '<span class="status_abbr_longinactive">' in planet:
+                    player = planet.split('<span class="status_abbr_longinactive">')[1].split('<')[0]
+                    status = 'longinactive'
+                elif '<span class="status_abbr_vacation">' in planet:
+                    player = planet.split('<span class="status_abbr_vacation">')[1].split('<')[0]
+                    status = 'vacation'
+                elif '<span class="status_abbr_admin">' in planet:
+                    player = planet.split('<span class="status_abbr_admin">')[1].split('<')[0]
+                    status = 'admin'
+                elif '<span class="status_abbr_honorableTarget">' in planet:
+                    player = planet.split('<span class="status_abbr_honorableTarget">')[1].split('<')[0]
+                    status = 'honorableTarget'
+                elif '<span class="status_abbr_noob">' in planet:
+                    player = planet.split('<span class="status_abbr_noob">')[1].split('<')[0]
+                    status = 'noob'
+                if '<div class="moon_a"' in planet:
+                    moon = True
+                else:
+                    moon = False
+                list = [planet_name, coordinates, player, status, moon]
+            planet_info.append(planet_class)
         return planet_info
 
     def get_ally(self):

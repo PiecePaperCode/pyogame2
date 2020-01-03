@@ -4,7 +4,7 @@ class destination(object):
     moon = 3
 
 
-def coordinates(galaxy, system, position, dest=destination.planet):
+def coordinates(galaxy, system, position=None, dest=destination.planet):
     return [galaxy, system, position, dest]
 
 
@@ -143,3 +143,12 @@ class ships(object):
 
 def resources(metal=0, crystal=0, deuterium=0):
     return [metal, crystal, deuterium]
+
+class status:
+    inactive = 'inactive'
+    longinactive = 'longinactive'
+    vacation = 'vacation'
+    admin = 'admin'
+    noob = 'noob'
+    honorable_target = 'honorableTarget'
+    active = 'active'
