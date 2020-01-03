@@ -134,15 +134,15 @@ class OGame2(object):
 
         class resources(object):
             for re_obj in re.finditer(marker_string.format('resources_metal'), response):
-                metal = response[re_obj.start() + 37: re_obj.end() + 20].split('"')[0].split('.')[0]
+                metal = int(response[re_obj.start() + 37: re_obj.end() + 20].split('"')[0].split('.')[0])
             for re_obj in re.finditer(marker_string.format('resources_crystal'), response):
-                crystal = response[re_obj.start() + 39: re_obj.end() + 20].split('"')[0].split('.')[0]
+                crystal = int(response[re_obj.start() + 39: re_obj.end() + 20].split('"')[0].split('.')[0])
             for re_obj in re.finditer(marker_string.format('resources_deuterium'), response):
-                deuterium = response[re_obj.start() + 41: re_obj.end() + 20].split('"')[0].split('.')[0]
+                deuterium = int(response[re_obj.start() + 41: re_obj.end() + 20].split('"')[0].split('.')[0])
             for re_obj in re.finditer(marker_string.format('resources_darkmatter'), response):
-                darkmatter = response[re_obj.start() + 42: re_obj.end() + 20].split('"')[0].split('.')[0]
+                darkmatter = int(response[re_obj.start() + 42: re_obj.end() + 20].split('"')[0].split('.')[0])
             for re_obj in re.finditer(marker_string.format('resources_energy'), response):
-                energy = response[re_obj.start() + 38: re_obj.end() + 20].split('"')[0].split('.')[0]
+                energy = int(response[re_obj.start() + 38: re_obj.end() + 20].split('"')[0].split('.')[0])
             resources = [metal, crystal, deuterium]
 
         return resources

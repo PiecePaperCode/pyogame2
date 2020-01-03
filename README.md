@@ -17,6 +17,11 @@ update
 pip uninstall pyogame2
 pip install pyogame2
 </pre>
+dont want to wait for new updates download direct from the develop branch
+<pre>
+pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
+</pre>
+
 ## functions
 ### login
 <pre>
