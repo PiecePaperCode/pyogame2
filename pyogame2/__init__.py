@@ -167,41 +167,51 @@ class OGame2(object):
             level = supply_buildings[0]
             is_possible = False
             if '''data-technology="1"\n    data-status="on"''' in response: is_possible = True
+            cost = const.resources(metal=int(60 * 1.5 ** level), crystal=int(15 * 1.5 ** level))
 
         class crystal_mine_class:
             level = supply_buildings[1]
             is_possible = False
             if 'technology="2"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(15 * 1.6 ** level))
 
         class deuterium_mine_class:
             level = supply_buildings[2]
             is_possible = False
             if 'technology="3"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(225 * 1.5 ** level), crystal=int(75 * 1.5 ** level))
 
         class solar_plant_class:
             level = supply_buildings[3]
             is_possible = False
             if 'technology="4"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(75 * 1.5 ** level), crystal=int(30 * 1.5 ** level))
 
         class fusion_plant_class:
             level = supply_buildings[4]
             is_possible = False
             if 'technology="12"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(900 * 1.8 ** level),
+                                   crystal=int(360 * 1.8 ** level),
+                                   deuterium=int(180 * 1.8 ** level))
 
         class metal_storage_class:
             level = supply_buildings[5]
             is_possible = False
             if 'technology="22"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level))
 
         class crystal_storage_class:
             level = supply_buildings[6]
             is_possible = False
             if 'technology="23"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(500 * 2 ** level))
 
         class deuterium_storage_class:
             level = supply_buildings[7]
             is_possible = False
             if 'technology="24"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(1000 * 2 ** level))
 
         class supply_buildings(object):
             metal_mine = metal_mine_class
