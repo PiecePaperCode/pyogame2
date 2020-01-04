@@ -1,5 +1,6 @@
 import re
 import requests
+from datetime import datetime
 
 try:
     import constants as const
@@ -575,6 +576,38 @@ class OGame2(object):
 
     def get_shop(self):
         raise Exception("function not implemented yet PLS contribute")
+
+    def get_fleet(self):
+        fleets_list = []
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement'
+                                    .format(self.server_number, self.server_language)).text
+        fleets = response.split('<div id="fleet')
+        del fleets[0]
+        for fleet in fleets:
+            fleet_id = fleet[0:30].split('"')[0]
+            marker = fleet.find('data-mission-type="')
+            fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+            marker = fleet.find('<span class="timer tooltip" title="')
+            fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
+            marker = fleet.find('<span class="originCoords tooltip" title="')
+            origin_raw = fleet[marker: marker + 180]
+            origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
+            fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
+            marker = fleet.find('<span class="destinationCoords tooltip"')
+            destination_raw = fleet[marker: marker + 200]
+            destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
+            fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
+
+            class fleets_class:
+                id = fleet_id
+                mission = fleet_mission
+                arrival = fleet_arrival
+                origin = fleet_origin
+                destination = fleet_destination
+                list = [fleet_id, fleet_mission, fleet_arrival, fleet_origin, fleet_destination]
+
+            fleets_list.append(fleets_class)
+        return fleets_list
 
     def send_message(self, player_id, msg):
         form_data = {'playerId': player_id,
