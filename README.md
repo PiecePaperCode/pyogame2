@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v4`
+version `7.1.0` `v5`
 
 ## install
 <pre>
@@ -29,7 +29,7 @@ pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 ### login
 <pre>
 from pyogame2 import OGame2
-from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings
+from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings, status
  
 empire = OGame2(UNI, USER, PASSWORD)
  
@@ -118,6 +118,7 @@ sup = empire.get_supply(id)
 
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
+sup.metal_mine.cost                     returns resources
 
 sup.crystal_mine
 sup.deuterium_mine
@@ -276,11 +277,15 @@ def.missile_interplanetary
 
 ### get galaxy
 <pre>
-empire.get_galaxy(coordinates)          returns list in list
-
-galaxy = empire.get_galaxy(coordinates)
-galaxy = [[player1, coordinates, planet_name], [player2, coordinates, planet_name]]
+empire.get_galaxy(coordinates)          returns list of class(object)
 </pre>
+```python
+for planet in empire.get_galaxy(coordinates(1, 23)):
+    print(planet.list)                  #returns all infos as a list
+    print(planet.planet_name, planet.coordinates, planet.player, planet.status, planet.moon)
+    if planet.status == status.longinactive:
+        #Farm Inactive
+```        
 
 ### get ally
 <pre>
@@ -297,10 +302,17 @@ empire.get_officers()                   returns Exception("function not implemen
 empire.get_shop()                       returns Exception("function not implemented yet PLS contribute")
 </pre>
 
-### send message
+### get fleet
 <pre>
-empire.send_message(player_id, msg)     returns None
+empire.get_fleet()                      returns list of class(object)
 </pre>
+
+```python
+for fleet in empire.get_fleet():
+    if fleet.mission == mission.expedition:
+        print(fleet.list)
+        print(fleet.id, fleet.mission, fleet.arrival, fleet.origin, fleet.destination)
+```
 
 ### send fleet
 ```python
@@ -316,6 +328,12 @@ empire.send_fleet(mission=mission.expedition,
 <pre>                 
                                         returns bool
 </pre>
+
+### send message
+<pre>
+empire.send_message(player_id, msg)     returns None
+</pre>
+
 
 ### build
 Buildings
@@ -413,4 +431,9 @@ research.armor
 ```
 <pre>                 
                                         returns None
+</pre>
+
+### logout
+<pre>                 
+empire.logout()                         returns exit()
 </pre>

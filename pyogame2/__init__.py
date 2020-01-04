@@ -1,5 +1,6 @@
 import re
 import requests
+from datetime import datetime
 
 try:
     import constants as const
@@ -167,41 +168,51 @@ class OGame2(object):
             level = supply_buildings[0]
             is_possible = False
             if '''data-technology="1"\n    data-status="on"''' in response: is_possible = True
+            cost = const.resources(metal=int(60 * 1.5 ** level), crystal=int(15 * 1.5 ** level))
 
         class crystal_mine_class:
             level = supply_buildings[1]
             is_possible = False
             if 'technology="2"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(15 * 1.6 ** level))
 
         class deuterium_mine_class:
             level = supply_buildings[2]
             is_possible = False
             if 'technology="3"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(225 * 1.5 ** level), crystal=int(75 * 1.5 ** level))
 
         class solar_plant_class:
             level = supply_buildings[3]
             is_possible = False
             if 'technology="4"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(75 * 1.5 ** level), crystal=int(30 * 1.5 ** level))
 
         class fusion_plant_class:
             level = supply_buildings[4]
             is_possible = False
             if 'technology="12"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(900 * 1.8 ** level),
+                                   crystal=int(360 * 1.8 ** level),
+                                   deuterium=int(180 * 1.8 ** level))
 
         class metal_storage_class:
             level = supply_buildings[5]
             is_possible = False
             if 'technology="22"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level))
 
         class crystal_storage_class:
             level = supply_buildings[6]
             is_possible = False
             if 'technology="23"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(500 * 2 ** level))
 
         class deuterium_storage_class:
             level = supply_buildings[7]
             is_possible = False
             if 'technology="24"\n    data-status="on"' in response: is_possible = True
+            cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(1000 * 2 ** level))
 
         class supply_buildings(object):
             metal_mine = metal_mine_class
@@ -408,8 +419,6 @@ class OGame2(object):
                                              'component=marketplace&action={}&asJson=1'
                                              .format(self.server_number, self.server_language, collect),
                                              data=form_data).json()
-            print(to_collect_market_ids, response)
-
         if response['status'] == 'success':
             return True
         else:
@@ -514,29 +523,43 @@ class OGame2(object):
         form_data = {'galaxy': galaxy, 'system': system}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=galaxyContent&ajax=1'
-                                     .format(self.server_number, self.server_language), data=form_data).text
-        marker_string = '<td rel=\\"planet{}\\"'
-        positions = []
-        for position in range(1, 16):
-            if response.find(marker_string.format(str(position))) != -1:
-                positions.append(position)
-
-        marker_string = '<h1>Planet:'
-        planet_name = []
-        for re_obj in re.finditer(marker_string, response):
-            planet_name.append(response[re_obj.start() + 39: re_obj.end() + 50].split('<')[0])
-
-        marker_string = '"status_abbr_'
-        planet_player = []
-        for re_obj in re.finditer(marker_string, response):
-            raw_player = response[re_obj.start() + 0: re_obj.end() + 40]
-            if '<' in raw_player:
-                planet_player.append(raw_player.split('>')[1].split('<')[0])
-
-        for pos, player, planet in zip(positions, planet_player, planet_name):
-            planet_info.append([player,
-                                [galaxy, system, pos, const.destination.planet],
-                                planet])
+                                     .format(self.server_number, self.server_language), data=form_data).json()
+        planets = response['galaxy'].split('data-planet-id=')
+        del planets[0]
+        for planet in planets:
+            coordinates_raw = planet.split('[')[1].split(']')[0].split(':')
+            class planet_class:
+                planet_name = planet.split('<h1>Planet:')[1][26:50].split('<')[0]
+                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]), int(coordinates_raw[2]))
+                player = None
+                status = None
+                if '<span class="status_abbr_active">' in planet:
+                    player = planet.split('<span class="status_abbr_active">')[1].split('<')[0]
+                    status = 'active'
+                if '<span class="status_abbr_inactive">' in planet:
+                    player = planet.split('<span class="status_abbr_inactive">')[1].split('<')[0]
+                    status = 'inactive'
+                elif '<span class="status_abbr_longinactive">' in planet:
+                    player = planet.split('<span class="status_abbr_longinactive">')[1].split('<')[0]
+                    status = 'longinactive'
+                elif '<span class="status_abbr_vacation">' in planet:
+                    player = planet.split('<span class="status_abbr_vacation">')[1].split('<')[0]
+                    status = 'vacation'
+                elif '<span class="status_abbr_admin">' in planet:
+                    player = planet.split('<span class="status_abbr_admin">')[1].split('<')[0]
+                    status = 'admin'
+                elif '<span class="status_abbr_honorableTarget">' in planet:
+                    player = planet.split('<span class="status_abbr_honorableTarget">')[1].split('<')[0]
+                    status = 'honorableTarget'
+                elif '<span class="status_abbr_noob">' in planet:
+                    player = planet.split('<span class="status_abbr_noob">')[1].split('<')[0]
+                    status = 'noob'
+                if '<div class="moon_a"' in planet:
+                    moon = True
+                else:
+                    moon = False
+                list = [planet_name, coordinates, player, status, moon]
+            planet_info.append(planet_class)
         return planet_info
 
     def get_ally(self):
@@ -553,6 +576,38 @@ class OGame2(object):
 
     def get_shop(self):
         raise Exception("function not implemented yet PLS contribute")
+
+    def get_fleet(self):
+        fleets_list = []
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement'
+                                    .format(self.server_number, self.server_language)).text
+        fleets = response.split('<div id="fleet')
+        del fleets[0]
+        for fleet in fleets:
+            fleet_id = fleet[0:30].split('"')[0]
+            marker = fleet.find('data-mission-type="')
+            fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+            marker = fleet.find('<span class="timer tooltip" title="')
+            fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
+            marker = fleet.find('<span class="originCoords tooltip" title="')
+            origin_raw = fleet[marker: marker + 180]
+            origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
+            fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
+            marker = fleet.find('<span class="destinationCoords tooltip"')
+            destination_raw = fleet[marker: marker + 200]
+            destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
+            fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
+
+            class fleets_class:
+                id = fleet_id
+                mission = fleet_mission
+                arrival = fleet_arrival
+                origin = fleet_origin
+                destination = fleet_destination
+                list = [fleet_id, fleet_mission, fleet_arrival, fleet_origin, fleet_destination]
+
+            fleets_list.append(fleets_class)
+        return fleets_list
 
     def send_message(self, player_id, msg):
         form_data = {'playerId': player_id,
@@ -614,3 +669,8 @@ class OGame2(object):
 
     def research(self, research, id):
         OGame2.build(self, research, id)
+
+    def logout(self):
+        self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=logout'
+                         .format(self.server_number, self.server_language))
+        return exit()
