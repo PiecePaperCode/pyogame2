@@ -626,3 +626,8 @@ class OGame2(object):
 
     def research(self, research, id):
         OGame2.build(self, research, id)
+
+    def logout(self):
+        self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=logout'
+                         .format(self.server_number, self.server_language))
+        return exit()
