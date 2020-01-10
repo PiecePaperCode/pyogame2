@@ -119,6 +119,7 @@ sup = empire.get_supply(id)
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
 sup.metal_mine.cost                     returns resources
+sup.metal_mine.in_construction          returns bool
 
 sup.crystal_mine
 sup.deuterium_mine

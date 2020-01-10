@@ -167,31 +167,51 @@ class OGame2(object):
         class metal_mine_class:
             level = supply_buildings[0]
             is_possible = False
-            if '''data-technology="1"\n    data-status="on"''' in response: is_possible = True
+            if '''data-technology="1"\n    data-status="on"''' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="1"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(60 * 1.5 ** level), crystal=int(15 * 1.5 ** level))
 
         class crystal_mine_class:
             level = supply_buildings[1]
             is_possible = False
-            if 'technology="2"\n    data-status="on"' in response: is_possible = True
+            if 'technology="2"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="2"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(15 * 1.6 ** level))
 
         class deuterium_mine_class:
             level = supply_buildings[2]
             is_possible = False
-            if 'technology="3"\n    data-status="on"' in response: is_possible = True
+            if 'technology="3"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="3"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(225 * 1.5 ** level), crystal=int(75 * 1.5 ** level))
 
         class solar_plant_class:
             level = supply_buildings[3]
             is_possible = False
-            if 'technology="4"\n    data-status="on"' in response: is_possible = True
+            if 'technology="4"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="4"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(75 * 1.5 ** level), crystal=int(30 * 1.5 ** level))
 
         class fusion_plant_class:
             level = supply_buildings[4]
             is_possible = False
-            if 'technology="12"\n    data-status="on"' in response: is_possible = True
+            if 'technology="12"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="12"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(900 * 1.8 ** level),
                                    crystal=int(360 * 1.8 ** level),
                                    deuterium=int(180 * 1.8 ** level))
@@ -199,19 +219,31 @@ class OGame2(object):
         class metal_storage_class:
             level = supply_buildings[5]
             is_possible = False
-            if 'technology="22"\n    data-status="on"' in response: is_possible = True
+            if 'technology="22"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="22"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(1000 * 2 ** level))
 
         class crystal_storage_class:
             level = supply_buildings[6]
             is_possible = False
-            if 'technology="23"\n    data-status="on"' in response: is_possible = True
+            if 'technology="23"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="23"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(500 * 2 ** level))
 
         class deuterium_storage_class:
             level = supply_buildings[7]
             is_possible = False
-            if 'technology="24"\n    data-status="on"' in response: is_possible = True
+            if 'technology="24"\n    data-status="on"' in response:
+                is_possible = True
+            in_construction = False
+            if '''data-technology="24"\n    data-status="active"''' in response:
+                in_construction = True
             cost = const.resources(metal=int(1000 * 2 ** level), crystal=int(1000 * 2 ** level))
 
         class supply_buildings(object):
@@ -528,9 +560,11 @@ class OGame2(object):
         del planets[0]
         for planet in planets:
             coordinates_raw = planet.split('[')[1].split(']')[0].split(':')
+
             class planet_class:
                 planet_name = planet.split('<h1>Planet:')[1][26:50].split('<')[0]
-                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]), int(coordinates_raw[2]))
+                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]),
+                                                int(coordinates_raw[2]))
                 player = None
                 status = None
                 if '<span class="status_abbr_active">' in planet:
@@ -559,6 +593,7 @@ class OGame2(object):
                 else:
                     moon = False
                 list = [planet_name, coordinates, player, status, moon]
+
             planet_info.append(planet_class)
         return planet_info
 
@@ -580,34 +615,37 @@ class OGame2(object):
     def get_fleet(self):
         fleets_list = []
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement'
-                                    .format(self.server_number, self.server_language)).text
-        fleets = response.split('<div id="fleet')
-        del fleets[0]
-        for fleet in fleets:
-            fleet_id = fleet[0:30].split('"')[0]
-            marker = fleet.find('data-mission-type="')
-            fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
-            marker = fleet.find('<span class="timer tooltip" title="')
-            fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
-            marker = fleet.find('<span class="originCoords tooltip" title="')
-            origin_raw = fleet[marker: marker + 180]
-            origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
-            fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
-            marker = fleet.find('<span class="destinationCoords tooltip"')
-            destination_raw = fleet[marker: marker + 200]
-            destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
-            fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
+                                    .format(self.server_number, self.server_language))
+        if response.status_code == 302:
+            fleets = response.text.split('<div id="fleet')
+            del fleets[0]
+            for fleet in fleets:
+                fleet_id = fleet[0:30].split('"')[0]
+                marker = fleet.find('data-mission-type="')
+                fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+                marker = fleet.find('<span class="timer tooltip" title="')
+                fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
+                marker = fleet.find('<span class="originCoords tooltip" title="')
+                origin_raw = fleet[marker: marker + 180]
+                origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
+                fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
+                marker = fleet.find('<span class="destinationCoords tooltip"')
+                destination_raw = fleet[marker: marker + 200]
+                destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
+                fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
 
-            class fleets_class:
-                id = fleet_id
-                mission = fleet_mission
-                arrival = fleet_arrival
-                origin = fleet_origin
-                destination = fleet_destination
-                list = [fleet_id, fleet_mission, fleet_arrival, fleet_origin, fleet_destination]
+                class fleets_class:
+                    id = fleet_id
+                    mission = fleet_mission
+                    arrival = fleet_arrival
+                    origin = fleet_origin
+                    destination = fleet_destination
+                    list = [fleet_id, fleet_mission, fleet_arrival, fleet_origin, fleet_destination]
 
-            fleets_list.append(fleets_class)
-        return fleets_list
+                fleets_list.append(fleets_class)
+            return fleets_list
+        else:
+            return fleets_list
 
     def send_message(self, player_id, msg):
         form_data = {'playerId': player_id,
