@@ -616,7 +616,7 @@ class OGame2(object):
         fleets_list = []
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement'
                                     .format(self.server_number, self.server_language))
-        if response.status_code == 302:
+        if response.status_code != 302:
             fleets = response.text.split('<div id="fleet')
             del fleets[0]
             for fleet in fleets:
