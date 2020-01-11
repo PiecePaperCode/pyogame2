@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v5`
+version `7.1.0` `v6`
 
 ## install
 <pre>
@@ -39,6 +39,11 @@ empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)')
 ### get attacked
 <pre>
 empire.get_attacked()                   returns bool 
+</pre>
+
+### get neutral
+<pre>
+empire.get_neutral()                    returns bool 
 </pre>
  
 ### get planet id's
@@ -119,6 +124,7 @@ sup = empire.get_supply(id)
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
 sup.metal_mine.cost                     returns resources
+sup.metal_mine.in_construction          returns bool
 
 sup.crystal_mine
 sup.deuterium_mine
