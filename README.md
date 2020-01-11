@@ -40,6 +40,11 @@ empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)')
 <pre>
 empire.get_attacked()                   returns bool 
 </pre>
+
+### get neutral
+<pre>
+empire.get_neutral()                    returns bool 
+</pre>
  
 ### get planet id's
 <pre>

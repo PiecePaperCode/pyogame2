@@ -73,11 +73,21 @@ class OGame2(object):
             self.build_token = content[re_obj.start() + len(marker_string): re_obj.end() + 32]
 
     def get_attacked(self):
-        attack = 'tooltip eventToggle soon'
-        no_attack = 'tooltip noAttack'
-        if attack in self.session.content:
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
+                                    .format(self.server_number, self.server_language)).json()
+        if response['hostile'] > 0:
             return True
-        elif no_attack in self.session.content:
+        else:
+            return False
+
+    def get_neutral(self):
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
+                                    .format(self.server_number, self.server_language)).json()
+        if response['neutral'] > 0:
+            return True
+        else:
             return False
 
     def get_planet_ids(self):
@@ -614,10 +624,14 @@ class OGame2(object):
 
     def get_fleet(self):
         fleets_list = []
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement'
-                                    .format(self.server_number, self.server_language))
-        if response.status_code != 302:
-            fleets = response.text.split('<div id="fleet')
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
+                                    .format(self.server_number, self.server_language)).json()
+        if response['friendly'] != 0:
+            response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
+                                        'component=movement'
+                                        .format(self.server_number, self.server_language)).text
+            fleets = response.split('<div id="fleet')
             del fleets[0]
             for fleet in fleets:
                 fleet_id = fleet[0:30].split('"')[0]
