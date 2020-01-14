@@ -84,6 +84,7 @@ pos = coordinates(galaxy=1,
 coordinates(1, 2, 12, destination.moon)
 coordinates(1, 2, 12, destination.debris)
 coordinates(1, 2, 12, destination.planet) or coordinates(1, 2, 12)
+coordinates(1, 2) # for only use with get_galaxy
 ```
 ### get celestial coordinates
 works with planet's and moon's
