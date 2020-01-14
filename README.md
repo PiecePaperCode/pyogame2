@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v6`
+version `7.1.0` `v7`
 
 ## install
 <pre>
@@ -317,7 +317,19 @@ empire.get_fleet()                      returns list of class(object)
 for fleet in empire.get_fleet():
     if fleet.mission == mission.expedition:
         print(fleet.list)
-        print(fleet.id, fleet.mission, fleet.arrival, fleet.origin, fleet.destination)
+        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
+```
+
+### get phalanx
+<pre>
+empire.get_phalanx(id, coordinates)     returns list of class(object)
+</pre>
+
+```python
+for fleet in empire.get_phalanx(moon_id, coordinates(2, 410, 7)):
+    if fleet.mission == mission.expedition:
+        print(fleet.list)
+        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
 
 ### send fleet
