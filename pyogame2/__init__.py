@@ -191,7 +191,7 @@ class OGame2(object):
             in_construction = False
             if '''data-technology="2"\n    data-status="active"''' in response:
                 in_construction = True
-            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(15 * 1.6 ** level))
+            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(24 * 1.6 ** level))
 
         class deuterium_mine_class:
             level = supply_buildings[2]
