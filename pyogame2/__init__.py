@@ -9,7 +9,9 @@ except Exception as e:
 
 
 class OGame2(object):
-    def __init__(self, universe, username, password, user_agent=None):
+    def __init__(self, universe, username, password, user_agent=None, proxy=None):
+        if proxy is None:
+            proxy = {'https': None}
         self.universe = universe
         self.username = username
         self.password = password
@@ -17,6 +19,7 @@ class OGame2(object):
         self.sendfleet_token = None
         self.build_token = None
         self.session = requests.Session()
+        self.session.proxies.update({'https': proxy})
         self.server_id = None
         self.server_number = None
         self.server_language = None
