@@ -33,7 +33,7 @@ from pyogame2.constants import destination, coordinates, ships, mission, speed, 
  
 empire = OGame2(UNI, USER, PASSWORD)
  
-empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy={'https': 'https://proxy.com:port'}) #optional
+empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy='https://proxy.com:port') #optional
 </pre>
  
 ### get attacked
