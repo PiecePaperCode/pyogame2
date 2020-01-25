@@ -22,6 +22,9 @@ dont want to wait for new updates download direct from the develop branch
 pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 </pre>
 
+## get started
+[Code Snippets](https://github.com/PiecePaperCode/pyogame2/wiki/Code-Snippets)
+
 ## Discord
 [Join Discord](https://discord.gg/CeBDgnR)
 
@@ -32,11 +35,12 @@ from pyogame2 import OGame2
 from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings, status
  
 empire = OGame2(UNI, USER, PASSWORD)
- 
-empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy='https://proxy.com:port') #optional
+
+#optional
+empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy='https://proxy.com:port')
 </pre>
 Want to use it with tor?
-[Wiki](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
+[Tutorial](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
 
  
 ### get attacked
