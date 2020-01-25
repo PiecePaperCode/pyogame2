@@ -35,6 +35,9 @@ empire = OGame2(UNI, USER, PASSWORD)
  
 empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy='https://proxy.com:port') #optional
 </pre>
+Want to use it with tor?
+[Wiki](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
+
  
 ### get attacked
 <pre>
@@ -322,7 +325,7 @@ for fleet in empire.get_fleet():
 
 ### get phalanx
 <pre>
-empire.get_phalanx(id, coordinates)     returns list of class(object)
+empire.get_phalanx(coordinates, id)     returns list of class(object)
 </pre>
 
 ```python

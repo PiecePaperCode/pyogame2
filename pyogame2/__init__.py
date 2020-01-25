@@ -9,7 +9,7 @@ except Exception as e:
 
 
 class OGame2(object):
-    def __init__(self, universe, username, password, user_agent=None, proxy=None):
+    def __init__(self, universe, username, password, user_agent=None, proxy=''):
         if proxy is None:
             proxy = {'https': None}
         self.universe = universe
@@ -668,7 +668,7 @@ class OGame2(object):
         else:
             return fleets_list
 
-    def get_phalanx(self, id, coordinates):
+    def get_phalanx(self, coordinates, id):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
                                     'page=phalanx&galaxy={}&system={}&position={}&ajax=1&cp={}'
                                     .format(self.server_number, self.server_language,
