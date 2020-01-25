@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.1.0`
-version `7.1.0` `v6`
+version `7.1.0` `v7`
 
 ## install
 <pre>
@@ -22,6 +22,9 @@ dont want to wait for new updates download direct from the develop branch
 pip install git+https://github.com/PiecePaperCode/pyogame2.git@develop
 </pre>
 
+## get started
+[Code Snippets](https://github.com/PiecePaperCode/pyogame2/wiki/Code-Snippets)
+
 ## Discord
 [Join Discord](https://discord.gg/CeBDgnR)
 
@@ -32,9 +35,13 @@ from pyogame2 import OGame2
 from pyogame2.constants import destination, coordinates, ships, mission, speed, buildings, status
  
 empire = OGame2(UNI, USER, PASSWORD)
- 
-empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)') #optional
+
+#optional
+empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)', proxy='https://proxy.com:port')
 </pre>
+Want to use it with tor?
+[Tutorial](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
+
  
 ### get attacked
 <pre>
@@ -84,7 +91,6 @@ pos = coordinates(galaxy=1,
 coordinates(1, 2, 12, destination.moon)
 coordinates(1, 2, 12, destination.debris)
 coordinates(1, 2, 12, destination.planet) or coordinates(1, 2, 12)
-coordinates(1, 2) # for only use with get_galaxy
 ```
 ### get celestial coordinates
 works with planet's and moon's
@@ -318,7 +324,19 @@ empire.get_fleet()                      returns list of class(object)
 for fleet in empire.get_fleet():
     if fleet.mission == mission.expedition:
         print(fleet.list)
-        print(fleet.id, fleet.mission, fleet.arrival, fleet.origin, fleet.destination)
+        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
+```
+
+### get phalanx
+<pre>
+empire.get_phalanx(coordinates, id)     returns list of class(object)
+</pre>
+
+```python
+for fleet in empire.get_phalanx(moon_id, coordinates(2, 410, 7)):
+    if fleet.mission == mission.expedition:
+        print(fleet.list)
+        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
 
 ### send fleet

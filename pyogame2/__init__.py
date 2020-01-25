@@ -1,7 +1,6 @@
 import re
 import requests
 from datetime import datetime
-
 try:
     import constants as const
 except Exception as e:
@@ -10,7 +9,9 @@ except Exception as e:
 
 
 class OGame2(object):
-    def __init__(self, universe, username, password, user_agent=None):
+    def __init__(self, universe, username, password, user_agent=None, proxy=''):
+        if proxy is None:
+            proxy = {'https': None}
         self.universe = universe
         self.username = username
         self.password = password
@@ -18,6 +19,7 @@ class OGame2(object):
         self.sendfleet_token = None
         self.build_token = None
         self.session = requests.Session()
+        self.session.proxies.update({'https': proxy})
         self.server_id = None
         self.server_number = None
         self.server_language = None
@@ -192,7 +194,7 @@ class OGame2(object):
             in_construction = False
             if '''data-technology="2"\n    data-status="active"''' in response:
                 in_construction = True
-            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(15 * 1.6 ** level))
+            cost = const.resources(metal=int(48 * 1.6 ** level), crystal=int(24 * 1.6 ** level))
 
         class deuterium_mine_class:
             level = supply_buildings[2]
@@ -637,6 +639,10 @@ class OGame2(object):
                 fleet_id = fleet[0:30].split('"')[0]
                 marker = fleet.find('data-mission-type="')
                 fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+                if 'data-return-flight="1"' in fleet:
+                    fleet_return = True
+                else:
+                    fleet_return = False
                 marker = fleet.find('<span class="timer tooltip" title="')
                 fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
                 marker = fleet.find('<span class="originCoords tooltip" title="')
@@ -651,15 +657,56 @@ class OGame2(object):
                 class fleets_class:
                     id = fleet_id
                     mission = fleet_mission
+                    returns = fleet_return
                     arrival = fleet_arrival
                     origin = fleet_origin
                     destination = fleet_destination
-                    list = [fleet_id, fleet_mission, fleet_arrival, fleet_origin, fleet_destination]
+                    list = [fleet_id, fleet_mission, fleet_return, fleet_arrival, fleet_origin, fleet_destination]
 
                 fleets_list.append(fleets_class)
             return fleets_list
         else:
             return fleets_list
+
+    def get_phalanx(self, coordinates, id):
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                    'page=phalanx&galaxy={}&system={}&position={}&ajax=1&cp={}'
+                                    .format(self.server_number, self.server_language,
+                                            coordinates[0], coordinates[1], coordinates[2], id)).text
+        fleets_list = []
+        fleets = response.split('<div class="eventFleet" id="eventRow-')
+        del fleets[0]
+        for fleet in fleets:
+            fleet_id = fleet[0:30].split('"')[0]
+            marker = fleet.find('data-mission-type="')
+            fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+            if 'data-return-flight="true"' in fleet:
+                fleet_return = True
+            else:
+                fleet_return = False
+            marker = fleet.find('<li class="arrivalTime">')
+            fleet_arrival = datetime.combine(datetime.today(),
+                                             datetime.strptime(fleet[marker + 24: marker + 32], '%H:%M:%S').time())
+            marker = fleet.find('<li class="coordsOrigin">')
+            origin_raw = fleet[marker: marker + 230]
+            origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
+            fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
+            marker = fleet.find('<li class="destCoords">')
+            destination_raw = fleet[marker: marker + 250]
+            destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
+            fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
+
+            class fleets_class:
+                id = fleet_id
+                mission = fleet_mission
+                returns = fleet_return
+                arrival = fleet_arrival
+                origin = fleet_origin
+                destination = fleet_destination
+                list = [fleet_id, fleet_mission, fleet_return, fleet_arrival, fleet_origin, fleet_destination]
+
+            fleets_list.append(fleets_class)
+        return fleets_list
 
     def send_message(self, player_id, msg):
         form_data = {'playerId': player_id,
@@ -704,6 +751,11 @@ class OGame2(object):
                                      'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'
                                      .format(self.server_number, self.server_language), data=form_data).json()
         return response['success']
+
+    def return_fleet(self, fleet_id):
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement&'
+                                    'return={}'.format(self.server_number, self.server_language, fleet_id))
+
 
     def build(self, what, id):
         type = what[0]
