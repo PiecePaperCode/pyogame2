@@ -633,22 +633,41 @@ class OGame2(object):
             response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                         'component=movement'
                                         .format(self.server_number, self.server_language)).text
+
+            events = response.split('class="fleetinfo"')
+            del events[0]
             fleets = response.split('<div id="fleet')
             del fleets[0]
-            for fleet in fleets:
+
+            for fleet, event in zip(fleets, events):
                 fleet_id = fleet[0:30].split('"')[0]
+                fleet_info = event.split('</table>')[0].split('<td')
+                del fleet_info[0]
+                remove_chars = ['>', "\n", ' ', ':</td', 'class="value"', '</td</tr<tr', '0</td</tr', '</td</tr',
+                                ':</th</tr<tr', 'colspan="2"&nbsp;<thcolspan="2"']
+                for char in remove_chars:
+                    fleet_info = [s.replace(char, '') for s in fleet_info]
+                try:
+                    fleet_info.remove('')
+                except:
+                    pass
+
                 marker = fleet.find('data-mission-type="')
                 fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
+
                 if 'data-return-flight="1"' in fleet:
                     fleet_return = True
                 else:
                     fleet_return = False
+
                 marker = fleet.find('<span class="timer tooltip" title="')
                 fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
+
                 marker = fleet.find('<span class="originCoords tooltip" title="')
                 origin_raw = fleet[marker: marker + 180]
                 origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
                 fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
+
                 marker = fleet.find('<span class="destinationCoords tooltip"')
                 destination_raw = fleet[marker: marker + 200]
                 destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
@@ -656,12 +675,13 @@ class OGame2(object):
 
                 class fleets_class:
                     id = fleet_id
+                    ships = fleet_info
                     mission = fleet_mission
                     returns = fleet_return
                     arrival = fleet_arrival
                     origin = fleet_origin
                     destination = fleet_destination
-                    list = [fleet_id, fleet_mission, fleet_return, fleet_arrival, fleet_origin, fleet_destination]
+                    list = [fleet_id, fleet_info, fleet_mission, fleet_return, fleet_arrival, fleet_origin, fleet_destination]
 
                 fleets_list.append(fleets_class)
             return fleets_list

@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
   name = 'pyogame2',
   packages = ['pyogame2'],
-  version = '7.1.0.7',
+  version = '7.1.0.8',
   license='MIT',
   description = 'lib for the popular browsergame ogame',
   author = 'PapeprPieceCode',

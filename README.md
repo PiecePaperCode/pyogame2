@@ -324,7 +324,7 @@ empire.get_fleet()                      returns list of class(object)
 for fleet in empire.get_fleet():
     if fleet.mission == mission.expedition:
         print(fleet.list)
-        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
+        print(fleet.id, fleet.ships, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
 
 ### get phalanx
