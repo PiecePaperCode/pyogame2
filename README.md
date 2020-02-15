@@ -434,7 +434,7 @@ ships.espionage_probe(int)
 ### research
 ```python
 from pyogame2.constants import research
-empire.research(what=research.energy, 
+empire.research(research=research.energy, 
              id=id)
 
 research.energy
