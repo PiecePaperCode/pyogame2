@@ -130,8 +130,8 @@ sup = empire.get_supply(id)
 
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
-sup.metal_mine.cost                     returns resources
 sup.metal_mine.in_construction          returns bool
+sup.metal_mine.cost                     returns resources
 
 sup.crystal_mine
 sup.deuterium_mine
@@ -147,7 +147,12 @@ sup.deuterium_storage                   returns class(object)
 empire.get_facilities(id)               returns class(object) 
 
 fac = empire.get_facilities(id)
-fac.robotics_factory
+
+fac.robotics_factory.level              returns int
+fac.robotics_factory.is_possible        returns bool (possible to build)
+fac.robotics_factory.in_construction    returns bool
+fac.robotics_factory.cost               returns resources
+
 fac.shipyard
 fac.research_laboratory
 fac.alliance_depot
@@ -434,8 +439,7 @@ ships.espionage_probe(int)
 ### research
 ```python
 from pyogame2.constants import research
-empire.research(research=research.energy, 
-             id=id)
+empire.research(research=research.energy, id=id)
 
 research.energy
 research.laser

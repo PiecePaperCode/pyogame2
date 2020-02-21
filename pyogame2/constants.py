@@ -143,7 +143,7 @@ class ships(object):
 
 
 def resources(metal=0, crystal=0, deuterium=0):
-    return [metal, crystal, deuterium]
+    return [int(metal), int(crystal), int(deuterium)]
 
 
 class status:
