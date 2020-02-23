@@ -105,6 +105,12 @@ class OGame2(object):
         else:
             return False
 
+    def get_speed(self):
+        class speed:
+            universe = int(self.session.content.split('<meta name="ogame-universe-speed" content=')[1].split('"')[1])
+            fleet = int(self.session.content.split('<meta name="ogame-universe-speed-fleet" content=')[1].split('"')[1])
+        return speed
+
     def get_planet_ids(self):
         planet_ids = []
         marker_string = 'id="planet-'

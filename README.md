@@ -42,7 +42,6 @@ empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)',
 Want to use it with tor?
 [Tutorial](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
 
- 
 ### get attacked
 <pre>
 empire.get_attacked()                   returns bool 
@@ -51,6 +50,13 @@ empire.get_attacked()                   returns bool
 ### get neutral
 <pre>
 empire.get_neutral()                    returns bool 
+</pre>
+
+### get speed (universe)
+<pre>
+empire.get_speed()                      returns class
+empire.get_speed().universe
+empire.get_speed().fleet
 </pre>
  
 ### get planet id's
