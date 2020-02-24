@@ -109,9 +109,9 @@ class ships(object):
     def espionage_probe(self): return 210, self, 'shipyard'
 
     def is_ship(ship):
-        if ship[2] == 'shipyard': 
+        if ship[2] == 'shipyard':
             return True
-        else: 
+        else:
             return False
 
     def get_ship_name(ship):
@@ -136,13 +136,15 @@ class ships(object):
     def get_ship_amount(ship):
         if ships.is_ship(ship):
             return ship[1]
-    
+
     def get_ship_id(ship):
         if ships.is_ship(ship):
             return ship[0]
 
+
 def resources(metal=0, crystal=0, deuterium=0):
-    return [metal, crystal, deuterium]
+    return [int(metal), int(crystal), int(deuterium)]
+
 
 class status:
     inactive = 'inactive'

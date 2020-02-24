@@ -5,8 +5,8 @@ OGame is a browser-based, money-management and space-war themed massively multip
 two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
-it supports ogame_version: `7.1.0`
-version `7.1.0` `v7`
+it supports ogame_version: `7.1.1`
+version `7.1.1` `v8`
 
 ## install
 <pre>
@@ -42,7 +42,6 @@ empire = OGame2(UNI, USER, PASSWORD, user_agent='NCSA_Mosaic/2.0 (Windows 3.1)',
 Want to use it with tor?
 [Tutorial](https://github.com/PiecePaperCode/pyogame2/wiki/Using-Tor-with-pyogame2)
 
- 
 ### get attacked
 <pre>
 empire.get_attacked()                   returns bool 
@@ -51,6 +50,13 @@ empire.get_attacked()                   returns bool
 ### get neutral
 <pre>
 empire.get_neutral()                    returns bool 
+</pre>
+
+### get speed (universe)
+<pre>
+empire.get_speed()                      returns class
+empire.get_speed().universe
+empire.get_speed().fleet
 </pre>
  
 ### get planet id's
@@ -114,12 +120,15 @@ res = resources(metal=1, crystal=2, deuterium=3)
 empire.get_resources(id)                returns class(object)
 
 res = empire.get_resources(id)
-res.resources
+res.resources                           returns resources
+res.day_production                      returns resources
+res.darkmatter                          returns int
+res.energy                              returns int
+
+WILL BE REMOVED
 res.metal
 res.crystal
 res.deuterium
-res.darkmatter
-res.energy                              returns int
 </pre>
 
 ### get supply
@@ -130,8 +139,8 @@ sup = empire.get_supply(id)
 
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
-sup.metal_mine.cost                     returns resources
 sup.metal_mine.in_construction          returns bool
+sup.metal_mine.cost                     returns resources
 
 sup.crystal_mine
 sup.deuterium_mine
@@ -147,7 +156,12 @@ sup.deuterium_storage                   returns class(object)
 empire.get_facilities(id)               returns class(object) 
 
 fac = empire.get_facilities(id)
-fac.robotics_factory
+
+fac.robotics_factory.level              returns int
+fac.robotics_factory.is_possible        returns bool (possible to build)
+fac.robotics_factory.in_construction    returns bool
+fac.robotics_factory.cost               returns resources
+
 fac.shipyard
 fac.research_laboratory
 fac.alliance_depot
@@ -324,7 +338,7 @@ empire.get_fleet()                      returns list of class(object)
 for fleet in empire.get_fleet():
     if fleet.mission == mission.expedition:
         print(fleet.list)
-        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
+        print(fleet.id, fleet.ships, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
 
 ### get phalanx
@@ -434,8 +448,7 @@ ships.espionage_probe(int)
 ### research
 ```python
 from pyogame2.constants import research
-empire.research(what=research.energy, 
-             id=id)
+empire.research(research=research.energy, id=id)
 
 research.energy
 research.laser
