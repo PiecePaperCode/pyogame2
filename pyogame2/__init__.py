@@ -164,23 +164,28 @@ class OGame2(object):
         return [galaxy, system, position, destination]
 
     def get_resources(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=overview&cp={}'
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=resourceSettings&cp={}'
                                     .format(self.server_number, self.server_language, id)).text
-        marker_string = '<span id="{}" data-raw="'
+
+        resources_names = ['metal', 'crystal', 'deuterium', 'darkmatter', 'energy']
+        resources_list = []
+        for name in resources_names:
+            marker_string = '<span id="resources_{}" data-raw='.format(name)
+            resources_list.append(int(response.split(marker_string)[1]
+                                      .split('>')[1].split('<')[0].split(',')[0].replace('.', '')))
+
+        production = [res.split('"')[1].replace('.', '')
+                       for res in response.split('<span class="tooltipCustom" title=')]
 
         class resources(object):
-            for re_obj in re.finditer(marker_string.format('resources_metal'), response):
-                metal = int(response[re_obj.start() + 37: re_obj.end() + 20].split('"')[0].split('.')[0])
-            for re_obj in re.finditer(marker_string.format('resources_crystal'), response):
-                crystal = int(response[re_obj.start() + 39: re_obj.end() + 20].split('"')[0].split('.')[0])
-            for re_obj in re.finditer(marker_string.format('resources_deuterium'), response):
-                deuterium = int(response[re_obj.start() + 41: re_obj.end() + 20].split('"')[0].split('.')[0])
-            for re_obj in re.finditer(marker_string.format('resources_darkmatter'), response):
-                darkmatter = int(response[re_obj.start() + 42: re_obj.end() + 20].split('"')[0].split('.')[0])
-            for re_obj in re.finditer(marker_string.format('resources_energy'), response):
-                energy = int(response[re_obj.start() + 38: re_obj.end() + 20].split('"')[0].split('.')[0])
+            metal = resources_list[0]
+            crystal = resources_list[1]
+            deuterium = resources_list[2]
+
             resources = [metal, crystal, deuterium]
+            day_production = [int(res) for res in [production[12], production[13], production[14]]]
+            darkmatter = resources_list[3]
+            energy = resources_list[4]
 
         return resources
 

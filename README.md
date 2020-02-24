@@ -120,12 +120,15 @@ res = resources(metal=1, crystal=2, deuterium=3)
 empire.get_resources(id)                returns class(object)
 
 res = empire.get_resources(id)
-res.resources
+res.resources                           returns resources
+res.day_production                      returns resources
+res.darkmatter                          returns int
+res.energy                              returns int
+
+WILL BE REMOVED
 res.metal
 res.crystal
 res.deuterium
-res.darkmatter
-res.energy                              returns int
 </pre>
 
 ### get supply
