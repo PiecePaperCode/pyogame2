@@ -719,8 +719,7 @@ class OGame2(object):
                 origin_raw = fleet[marker: marker + 180]
                 origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
                 fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
-
-                marker = fleet.find('<span class="destinationCoords tooltip"')
+                marker = fleet.find('<span class="destinationCoords')
                 destination_raw = fleet[marker: marker + 200]
                 destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
                 fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
