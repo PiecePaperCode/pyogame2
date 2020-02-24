@@ -233,21 +233,21 @@ class OGame2(object):
             cost = const.resources(metal=900 * 1.8 ** level, crystal=360 * 1.8 ** level, deuterium=180 * 1.8 ** level)
 
         class metal_storage_class:
-            info = OGame2.get_building_info(supply_html[5])
+            info = OGame2.get_building_info(supply_html[7])
             level = info[0]
             is_possible = info[1]
             in_construction = info[2]
             cost = const.resources(metal=1000 * 2 ** level)
 
         class crystal_storage_class:
-            info = OGame2.get_building_info(supply_html[6])
+            info = OGame2.get_building_info(supply_html[8])
             level = info[0]
             is_possible = info[1]
             in_construction = info[2]
             cost = const.resources(metal=1000 * 2 ** level, crystal=500 * 2 ** level)
 
         class deuterium_storage_class:
-            info = OGame2.get_building_info(supply_html[7])
+            info = OGame2.get_building_info(supply_html[9])
             level = info[0]
             is_possible = info[1]
             in_construction = info[2]
