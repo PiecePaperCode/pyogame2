@@ -88,9 +88,10 @@ class OGame2(object):
 
     # main functions
     def get_attacked(self):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                    .format(self.server_number, self.server_language)).json()
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
+                                     'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
+                                     .format(self.server_number, self.server_language),
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['hostile'] > 0:
             return True
         else:
@@ -99,7 +100,8 @@ class OGame2(object):
     def get_neutral(self):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
                                     'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                    .format(self.server_number, self.server_language)).json()
+                                    .format(self.server_number, self.server_language),
+                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['neutral'] > 0:
             return True
         else:
@@ -109,6 +111,7 @@ class OGame2(object):
         class speed:
             universe = int(self.session.content.split('<meta name="ogame-universe-speed" content=')[1].split('"')[1])
             fleet = int(self.session.content.split('<meta name="ogame-universe-speed-fleet" content=')[1].split('"')[1])
+
         return speed
 
     def get_planet_ids(self):
@@ -175,7 +178,7 @@ class OGame2(object):
                                       .split('>')[1].split('<')[0].split(',')[0].replace('.', '')))
 
         production = [res.split('"')[1].replace('.', '')
-                       for res in response.split('<span class="tooltipCustom" title=')]
+                      for res in response.split('<span class="tooltipCustom" title=')]
 
         class resources(object):
             metal = resources_list[0]
@@ -368,7 +371,8 @@ class OGame2(object):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
                                     'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
                                     'pagination%5Bpage%5D={}&cp={}' \
-                                    .format(self.server_number, self.server_language, page, id)).json()
+                                    .format(self.server_number, self.server_language, page, id),
+                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
 
         def get_item_type(item):
             type = None
@@ -680,7 +684,8 @@ class OGame2(object):
         fleets_list = []
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
                                     'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                    .format(self.server_number, self.server_language)).json()
+                                    .format(self.server_number, self.server_language),
+                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['friendly'] != 0:
             response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                         'component=movement'

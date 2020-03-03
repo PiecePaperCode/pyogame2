@@ -18,6 +18,7 @@ class mission(object):
     recycle = 8
     destroy = 9
     expedition = 15
+    trade = 16
 
 
 class speed(object):
