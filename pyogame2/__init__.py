@@ -437,15 +437,17 @@ class OGame2(object):
         return biddings
 
     def buy_marketplace(self, market_id, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
+        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                     'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D={}&cp={}' \
-                                    .format(self.server_number, self.server_language, 1, id)).json()
+                                    'pagination%5Bpage%5D={}&cp={}'
+                                    .format(self.server_number, self.server_language, 1, id),
+                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
 
         form_data = {'marketItemId': market_id}
         response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=marketplace&tab=buying&action=acceptRequest&asJson=1',
-                                     data=form_data).json()
+                                     data=form_data,
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['status'] == 'success':
             return True
         else:
@@ -486,7 +488,9 @@ class OGame2(object):
                      'price': price_form}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=marketplace&tab=create_offer&action=submitOffer&asJson=1'
-                                     .format(self.server_number, self.server_language), data=form_data).json()
+                                     .format(self.server_number, self.server_language),
+                                     data=form_data,
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
 
         if response['status'] == 'success':
             return True
@@ -503,8 +507,8 @@ class OGame2(object):
                                         'component=marketplace&tab={}&action={}&ajax=1&'
                                         'pagination%5Bpage%5D=1'
                                         .format(self.server_number, self.server_language,
-                                                page, action, OGame2.get_planet_ids(self)[0])) \
-                .json()
+                                                page, action, OGame2.get_planet_ids(self)[0]),
+                                        headers={'X-Requested-With': 'XMLHttpRequest'}).json()
             items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
             del items[0]
             for item in items:
@@ -517,7 +521,8 @@ class OGame2(object):
                 response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
                                              'component=marketplace&action={}&asJson=1'
                                              .format(self.server_number, self.server_language, collect),
-                                             data=form_data).json()
+                                             data=form_data,
+                                             headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['status'] == 'success':
             return True
         else:
@@ -622,7 +627,9 @@ class OGame2(object):
         form_data = {'galaxy': galaxy, 'system': system}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=galaxyContent&ajax=1'
-                                     .format(self.server_number, self.server_language), data=form_data).json()
+                                     .format(self.server_number, self.server_language),
+                                     data=form_data,
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         planets = response['galaxy'].split('data-planet-id=')
         del planets[0]
 
@@ -793,7 +800,8 @@ class OGame2(object):
                      'token': self.chat_token}
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
                                      'page=ajaxChat'.format(self.server_number, self.server_language),
-                                     data=form_data).json()
+                                     data=form_data,
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         self.chat_token = response['newToken']
 
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10, holdingtime=0):
@@ -826,7 +834,8 @@ class OGame2(object):
 
         response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
                                      'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'
-                                     .format(self.server_number, self.server_language), data=form_data).json()
+                                     .format(self.server_number, self.server_language), data=form_data,
+                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         return response['success']
 
     def return_fleet(self, fleet_id):
