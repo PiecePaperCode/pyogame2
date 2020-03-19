@@ -1,12 +1,12 @@
 # pyogame2
-![picture](ogame.png)
+![picture](ogame_icon.png)
 
 OGame is a browser-based, money-management and space-war themed massively multiplayer online browser game with over 
 two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
-it supports ogame_version: `7.2.0`
-version `10`
+it supports ogame_version: `7.2.1`
+version `11`
 
 ## install
 <pre>
@@ -352,6 +352,19 @@ for fleet in empire.get_phalanx(moon_id, coordinates(2, 410, 7)):
         print(fleet.list)
         print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
+
+### get spyreport
+<pre>
+empire.get_spyreport()                  returns list of class(object)
+</pre>
+
+```python
+for spyreport in empire.get_spyreport():
+    print(spyreport.id, spyreport.player, spyreport.status, spyreport.coordinates,
+          spyreport.resources, spyreport.fleet, spyreport.defence)
+    print(spyreport.list)
+```
+
 
 ### send fleet
 ```python

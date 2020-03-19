@@ -792,6 +792,19 @@ class OGame2(object):
             fleets_list.append(fleets_class)
         return fleets_list
 
+    def get_messages(self, message_type, page):
+        form_data = {'messageId': -1,
+                     'tabid': message_type,
+                     'action': 107,
+                     'pagination': page,
+                     'ajax': 1}
+        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=messages'
+                                     .format(self.server_number, self.server_language),
+                                     data=form_data).text
+        messages = response.split('data-msg-id=')
+        del messages[0]
+        return messages
+
     def send_message(self, player_id, msg):
         form_data = {'playerId': player_id,
                      'text': msg,
@@ -803,6 +816,51 @@ class OGame2(object):
                                      data=form_data,
                                      headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         self.chat_token = response['newToken']
+
+    def get_spyreport(self):
+        spyreport = []
+        messages = OGame2.get_messages(self, const.messages.spy_reports, 1)
+        for message in messages:
+            if '<div class="compacting">' in message:
+
+                if '</span>' != message.split('\xa0')[2]:
+                    spyreport_player = message.split('\xa0')[2].split('<')[0]
+                else:
+                    spyreport_player = message.split('\xa0')[3].split('<')[0]
+
+                spyreport_status = None
+                for status in vars(const.status):
+                    if status in message:
+                        spyreport_status = status
+
+                if 'title="Planet"' in message:
+                    celestial = const.destination.planet
+                else:
+                    celestial = const.destination.moon
+
+                raw_resources = message.split('<span class="resspan">')
+                del raw_resources[0]
+                spyreport_resources = [int(res.split(': ')[1].split('<')[0].replace('M', '000').replace(',', '')
+                                           .replace('.', '')) for res in raw_resources]
+
+                spyreport_fleet = int(message.split('class="ctn ctn4 tooltipLeft"')[1].split(': ')[1].split('"')[0]
+                                      .replace('M', '000').replace('.', '').replace(',', ''))
+                spyreport_defence = int(message.split('class="ctn ctn4 fright tooltipRight"')[1].split(': ')[1]
+                                        .split('<')[0].replace('M', '000').replace('.', '').replace(',', ''))
+
+                class spyreport_class:
+                    id = message.split('"')[1]
+                    player = spyreport_player
+                    status = spyreport_status
+                    coordinates = [int(cor) for cor in message.split('[')[1].split(']')[0].split(':')]
+                    coordinates.append(celestial)
+                    resources = spyreport_resources
+                    fleet = spyreport_fleet
+                    defence = spyreport_defence
+                    list = [id, player, status, coordinates, resources, fleet, defence]
+
+                spyreport.append(spyreport_class)
+        return spyreport
 
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10, holdingtime=0):
         response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
