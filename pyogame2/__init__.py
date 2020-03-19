@@ -843,10 +843,14 @@ class OGame2(object):
                 spyreport_resources = [int(res.split(': ')[1].split('<')[0].replace('M', '000').replace(',', '')
                                            .replace('.', '')) for res in raw_resources]
 
-                spyreport_fleet = int(message.split('class="ctn ctn4 tooltipLeft"')[1].split(': ')[1].split('"')[0]
-                                      .replace('M', '000').replace('.', '').replace(',', ''))
-                spyreport_defence = int(message.split('class="ctn ctn4 fright tooltipRight"')[1].split(': ')[1]
-                                        .split('<')[0].replace('M', '000').replace('.', '').replace(',', ''))
+                try:
+                    spyreport_fleet = int(message.split('class="ctn ctn4 tooltipLeft"')[1].split(': ')[1].split('"')[0]
+                                          .replace('M', '000').replace('.', '').replace(',', ''))
+                    spyreport_defence = int(message.split('class="ctn ctn4 fright tooltipRight"')[1].split(': ')[1]
+                                            .split('<')[0].replace('M', '000').replace('.', '').replace(',', ''))
+                except:
+                    spyreport_fleet = None
+                    spyreport_defence = None
 
                 class spyreport_class:
                     id = message.split('"')[1]
