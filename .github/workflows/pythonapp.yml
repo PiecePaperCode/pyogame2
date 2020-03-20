@@ -29,7 +29,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        python3 setup.py
         from __init__ import OGame2
         from constants import destination, coordinates, ships, mission, speed, buildings, resources, status, messages
         
