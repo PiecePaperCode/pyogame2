@@ -23,4 +23,4 @@ jobs:
     - run:
         pip install requests
     - run:      
-        python ./pyogame2/__init__.py
+        python -m py_compile ./pyogame2/__init__.py
