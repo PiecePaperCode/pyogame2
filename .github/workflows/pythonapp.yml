@@ -23,6 +23,6 @@ jobs:
     - run:
         pip install requests
     - run:
-        pip install PyChecker
+        pip install pyflakes
     - run:      
-        pychecker ./pyogame2/__init__.py
+        pyflakes ./pyogame2/__init__.py
