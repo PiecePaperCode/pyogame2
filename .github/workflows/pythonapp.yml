@@ -23,6 +23,6 @@ jobs:
     - run:
         pip install requests
     - run:
-        pip install pychecker
+        pip install PyChecker
     - run:      
         pychecker ./pyogame2/__init__.py
