@@ -22,5 +22,7 @@ jobs:
         architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
     - run:
         pip install requests
+    - run:
+        pip install pychecker
     - run:      
-        python -m py_compile ./pyogame2/__init__.py
+        pychecker ./pyogame2/__init__.py
