@@ -44,35 +44,35 @@ Want to use it with tor?
 
 ### get attacked
 <pre>
-empire.get_attacked()                   returns bool 
+empire.attacked()                   returns bool 
 </pre>
 
 ### get neutral
 <pre>
-empire.get_neutral()                    returns bool 
+empire.neutral()                    returns bool 
 </pre>
 
 ### get speed (universe)
 <pre>
-empire.get_speed()                      returns class
-empire.get_speed().universe
-empire.get_speed().fleet
+empire.speed()                      returns class
+empire.speed().universe
+empire.speed().fleet
 </pre>
  
 ### get planet id's
 <pre>
-empire.get_planet_ids()                 returns list 
+empire.planet_ids()                 returns list 
 
-empire.get_id_by_planet_name('name')    returns int
+empire.id_by_planet_name('name')    returns int
 
-empire.get_planet_names()               returns list
+empire.planet_names()               returns list
 </pre>
 
 ### get moon id's
 <pre>
-empire.get_moon_ids()                   returns list
+empire.moon_ids()                   returns list
 
-**keep in mind to prefer planets id's moon id dont works on every get_function**
+**keep in mind to prefer planets id's moon id dont works on every function**
 </pre>
 
 ### coordinates
@@ -101,7 +101,7 @@ coordinates(1, 2, 12, destination.planet) or coordinates(1, 2, 12)
 ### get celestial coordinates
 works with planet's and moon's
 <pre>
-empire.get_celestial_coordinates(id)    returns list
+empire.celestial_coordinates(id)    returns list
 </pre>
 
 ### resources
@@ -117,9 +117,9 @@ res = resources(metal=1, crystal=2, deuterium=3)
 
 ### get resources
 <pre>
-empire.get_resources(id)                returns class(object)
+empire.resources(id)                returns class(object)
 
-res = empire.get_resources(id)
+res = empire.resources(id)
 res.resources                           returns resources
 res.day_production                      returns resources
 res.darkmatter                          returns int
@@ -133,9 +133,9 @@ res.deuterium
 
 ### get supply
 <pre>
-empire.get_supply(id)                   returns class(object)
+empire.supply(id)                   returns class(object)
 
-sup = empire.get_supply(id)
+sup = empire.supply(id)
 
 sup.metal_mine.level                    returns int
 sup.metal_mine.is_possible              returns bool (possible to build)
@@ -153,9 +153,9 @@ sup.deuterium_storage                   returns class(object)
 
 ### get facilities
 <pre>
-empire.get_facilities(id)               returns class(object) 
+empire.facilities(id)               returns class(object) 
 
-fac = empire.get_facilities(id)
+fac = empire.facilities(id)
 
 fac.robotics_factory.level              returns int
 fac.robotics_factory.is_possible        returns bool (possible to build)
@@ -173,7 +173,7 @@ fac.repair_dock
 
 ### get moon facilities
 <pre>
-empire.get_moon_facilities(id)          returns class(object) 
+empire.moon_facilities(id)          returns class(object) 
 </pre>
 
 ### get marketplace
@@ -183,10 +183,10 @@ resourses will be returned in the resourse's format
 ships will be returned in the ship's format
 </pre>
 ```python
-for bid in empire.get_marketplace(id, page_nr):
+for bid in empire.marketplace(id, page_nr):
     if bid.is_ships:
         print(bid.id, bid.offer, bid.price)
-        print(ships.get_ship_name(bid.offer), ships.get_ship_amount(bid.offer))
+        print(ships.ship_name(bid.offer), ships.ship_amount(bid.offer))
     if bid.is_resources:
         print(bid.id, bid.offer, bid.price) 
     print(bid.is_possible)
@@ -235,14 +235,14 @@ empire.collect_marketplace()            returns bool
 
 ### get traider
 <pre>
-empire.get_traider(id)                  returns Exception("function not implemented yet PLS contribute")
+empire.traider(id)                  returns Exception("function not implemented yet PLS contribute")
 </pre>
 
 ### get research
 <pre>
-empire.get_research()                   returns class(object) 
+empire.research()                   returns class(object) 
 
-res = empire.get_research()
+res = empire.research()
 res.energy
 res.laser
 res.ion
@@ -263,9 +263,9 @@ res.armor
 
 ### get ships
 <pre>
-empire.get_ships(id)                    returns class(object) 
+empire.ships(id)                    returns class(object) 
 
-shi = empire.get_ships(id)
+shi = empire.ships(id)
 shi.light_fighter
 shi.heavy_fighter
 shi.cruiser
@@ -287,9 +287,9 @@ shi.crawler
 
 ### get defences
 <pre>
-empire.get_defences(id)                 returns class(object) 
+empire.defences(id)                 returns class(object) 
 
-def = empire.get_defences(id)
+def = empire.defences(id)
 def.rocket_launcher
 def.laser_cannon_light
 def.laser_cannon_heavy
@@ -304,10 +304,10 @@ def.missile_interplanetary
 
 ### get galaxy
 <pre>
-empire.get_galaxy(coordinates)          returns list of class(object)
+empire.galaxy(coordinates)          returns list of class(object)
 </pre>
 ```python
-for planet in empire.get_galaxy(coordinates(1, 23)):
+for planet in empire.galaxy(coordinates(1, 23)):
     print(planet.list)                  #returns all infos as a list
     print(planet.planet_name, planet.coordinates, planet.player, planet.status, planet.moon)
     if planet.status == status.longinactive:
@@ -316,53 +316,55 @@ for planet in empire.get_galaxy(coordinates(1, 23)):
 
 ### get ally
 <pre>
-empire.get_ally()                       returns string
+empire.ally()                       returns string
 </pre>
 
 ### get officers
 <pre>
-empire.get_officers()                   returns Exception("function not implemented yet PLS contribute")
+empire.officers()                   returns Exception("function not implemented yet PLS contribute")
 </pre>
 
 ### get shop
 <pre>
-empire.get_shop()                       returns Exception("function not implemented yet PLS contribute")
+empire.shop()                       returns Exception("function not implemented yet PLS contribute")
 </pre>
 
 ### get fleet
 <pre>
-empire.get_fleet()                      returns list of class(object)
+empire.fleet()                      returns list of class(object)
 </pre>
 
 ```python
-for fleet in empire.get_fleet():
-    if fleet.mission == mission.expedition:
-        print(fleet.list)
-        print(fleet.id, fleet.ships, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
-```
-
-### get phalanx
-<pre>
-empire.get_phalanx(coordinates, id)     returns list of class(object)
-</pre>
-
-```python
-for fleet in empire.get_phalanx(moon_id, coordinates(2, 410, 7)):
+for fleet in empire.fleet():
     if fleet.mission == mission.expedition:
         print(fleet.list)
         print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
 ```
 
-### get spyreport
+### get phalanx
 <pre>
-empire.get_spyreport()                  returns list of class(object)
+empire.phalanx(coordinates, id)     returns list of class(object)
 </pre>
 
 ```python
-for spyreport in empire.get_spyreport():
-    print(spyreport.id, spyreport.player, spyreport.status, spyreport.coordinates,
-          spyreport.resources, spyreport.fleet, spyreport.defence)
-    print(spyreport.list)
+for fleet in empire.phalanx(moon_id, coordinates(2, 410, 7)):
+    if fleet.mission == mission.expedition:
+        print(fleet.list)
+        print(fleet.id, fleet.mission, fleet.returns, fleet.arrival, fleet.origin, fleet.destination)
+```
+
+### get spyreports
+<pre>
+empire.spyreports()                  returns list of class(object)
+</pre>
+
+```python
+for spyreport in empire.spyreports():
+    print(spyreport.id, spyreport.time, spyreport.coordinates, spyreport.resources, spyreport.technology)
+    
+    # you need to check bacause somtimes spymissions fail
+    if buildings.metal_mine in spyreports.technology:
+        print(spyreport.technology[buildings.metal_mine])
 ```
 
 
@@ -461,7 +463,7 @@ ships.espionage_probe(int)
 ### research
 ```python
 from pyogame2.constants import research
-empire.research(research=research.energy, id=id)
+empire.do_research(research=research.energy, id=id)
 
 research.energy
 research.laser

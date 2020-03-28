@@ -8,6 +8,12 @@ def coordinates(galaxy, system, position=None, dest=destination.planet):
     return [galaxy, system, position, dest]
 
 
+def convert_to_coordinates(coordinates):
+    coordinates = coordinates.split('[')[1].split(']')[0].split(':')
+    coordinates = [int(coordinate) for coordinate in coordinates]
+    return coordinates
+
+
 class mission(object):
     attack = 1
     transport = 3
@@ -93,21 +99,21 @@ class research(object):
 
 
 class ships(object):
-    def light_fighter(self): return 204, self, 'shipyard'
-    def heavy_fighter(self): return 205, self, 'shipyard'
-    def cruiser(self): return 206, self, 'shipyard'
-    def battleship(self): return 207, self, 'shipyard'
-    def interceptor(self): return 215, self, 'shipyard'
-    def bomber(self): return 211, self, 'shipyard'
-    def destroyer(self): return 213, self, 'shipyard'
-    def deathstar(self): return 214, self, 'shipyard'
-    def reaper(self): return 218, self, 'shipyard'
-    def explorer(self): return 219, self, 'shipyard'
-    def small_transporter(self): return 202, self, 'shipyard'
-    def large_transporter(self): return 203, self, 'shipyard'
-    def colonyShip(self): return 208, self, 'shipyard'
-    def recycler(self): return 209, self, 'shipyard'
-    def espionage_probe(self): return 210, self, 'shipyard'
+    def light_fighter(self=1): return 204, self, 'shipyard'
+    def heavy_fighter(self=1): return 205, self, 'shipyard'
+    def cruiser(self=1): return 206, self, 'shipyard'
+    def battleship(self=1): return 207, self, 'shipyard'
+    def interceptor(self=1): return 215, self, 'shipyard'
+    def bomber(self=1): return 211, self, 'shipyard'
+    def destroyer(self=1): return 213, self, 'shipyard'
+    def deathstar(self=1): return 214, self, 'shipyard'
+    def reaper(self=1): return 218, self, 'shipyard'
+    def explorer(self=1): return 219, self, 'shipyard'
+    def small_transporter(self=1): return 202, self, 'shipyard'
+    def large_transporter(self=1): return 203, self, 'shipyard'
+    def colonyShip(self=1): return 208, self, 'shipyard'
+    def recycler(self=1): return 209, self, 'shipyard'
+    def espionage_probe(self=1): return 210, self, 'shipyard'
 
     def is_ship(ship):
         if ship[2] == 'shipyard':
@@ -115,7 +121,7 @@ class ships(object):
         else:
             return False
 
-    def get_ship_name(ship):
+    def ship_name(ship):
         if ships.is_ship(ship):
             if ship[0] == 204: return 'light_fighter'
             if ship[0] == 205: return 'heavy_fighter'
@@ -134,13 +140,17 @@ class ships(object):
             if ship[0] == 210: return 'espionage_probe'
             if ship[0] == 217: return 'crawler'
 
-    def get_ship_amount(ship):
+    def ship_amount(ship):
         if ships.is_ship(ship):
             return ship[1]
 
-    def get_ship_id(ship):
+    def ship_id(ship):
         if ships.is_ship(ship):
             return ship[0]
+
+
+def convert_tech(code, category):
+    return code, 1, category
 
 
 def resources(metal=0, crystal=0, deuterium=0):
