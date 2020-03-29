@@ -58,6 +58,9 @@ class OGame2(object):
         self.chat_token = None
         OGame2.init_chatroken(self)
 
+        self.player = self.landing_page.find_all('class', 'overlaytextBeefy', 'value')
+        self.player_id = self.landing_page.find_all('name', 'ogame-player-id', 'attribute', 'content')
+
     # support functions
     def init_chatroken(self):
         for line in self.landing_page.find_all('type', 'textjavascript', 'value'):
@@ -102,8 +105,9 @@ class OGame2(object):
                 elif result == 'attribute':
                     attributes.append(line[result][same_element_attribute])
                 else:
-                    attributes.append(line[result])
-
+                    value = line[result].replace(' ', '')
+                    if value is not '':
+                        attributes.append(value)
             for line in self.parsed.values():
                 try:
                     if attribute_tag in line['attribute']:
@@ -174,7 +178,7 @@ class OGame2(object):
         html = OGame2.HTML(response)
 
         def to_int(string):
-            return int(string.replace(' ', '').replace('.', '').replace(',', '').replace('M', '000'))
+            return int(string.replace('.', '').replace(',', '').replace('M', '000'))
 
         class resources:
             resources = [html.find_all('id', 'resources_metal', 'value')[0],
@@ -189,78 +193,77 @@ class OGame2(object):
 
         return resources
 
-    def building_info(self):
-        marker_string = 'data-value='
-        marker = self.find(marker_string) + len(marker_string)
-        level = int(self[marker: marker + 4].split('"')[1])
-        is_possible = False
-        if 'data-status="on"' in self:
+    def collect_status(self):
+        if self == 'on':
             is_possible = True
-        in_construction = False
-        if 'data-status="active"' in self:
+        else:
+            is_possible = False
+        if self == 'active':
             in_construction = True
-        return level, is_possible, in_construction
+        else:
+            in_construction = False
+        return is_possible, in_construction
 
     def supply(self, id):
         response = self.session.get(self.index_php + 'page=ingame&component=supplies&cp={}'.format(id)).text
-        marker_string = '<li class="technology '
-        supply_html = response.split(marker_string)
-        del supply_html[0]
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
 
         class metal_mine_class:
-            info = OGame2.building_info(supply_html[0])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=60 * 1.5 ** level, crystal=15 * 1.5 ** level)
 
         class crystal_mine_class:
-            info = OGame2.building_info(supply_html[1])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=48 * 1.6 ** level, crystal=24 * 1.6 ** level)
 
         class deuterium_mine_class:
-            info = OGame2.building_info(supply_html[2])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=225 * 1.5 ** level, crystal=75 * 1.5 ** level)
 
         class solar_plant_class:
-            info = OGame2.building_info(supply_html[3])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=75 * 1.5 ** level, crystal=30 * 1.5 ** level)
 
         class fusion_plant_class:
-            info = OGame2.building_info(supply_html[4])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=900 * 1.8 ** level, crystal=360 * 1.8 ** level, deuterium=180 * 1.8 ** level)
 
         class metal_storage_class:
-            info = OGame2.building_info(supply_html[7])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[5]
+            data = OGame2.collect_status(status[5])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level)
 
         class crystal_storage_class:
-            info = OGame2.building_info(supply_html[8])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[6]
+            data = OGame2.collect_status(status[6])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level, crystal=500 * 2 ** level)
 
         class deuterium_storage_class:
-            info = OGame2.building_info(supply_html[9])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[7]
+            data = OGame2.collect_status(status[7])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level, crystal=1000 * 2 ** level)
 
         class supply_buildings(object):
@@ -277,65 +280,65 @@ class OGame2(object):
 
     def facilities(self, id):
         response = self.session.get(self.index_php + 'page=ingame&component=facilities&cp={}'.format(id)).text
-        marker_string = '<li class="technology '
-        facilities_html = response.split(marker_string)
-        del facilities_html[0]
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
 
         class robotics_factory_class:
-            info = OGame2.building_info(facilities_html[0])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=400 * 2 ** level, crystal=120 * 2 ** level, deuterium=200 * 2 ** level)
 
         class shipyard_class:
-            info = OGame2.building_info(facilities_html[1])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=200 * 2 ** level, crystal=100 * 2 ** level, deuterium=50 * 2 ** level)
 
         class research_laboratory_class:
-            info = OGame2.building_info(facilities_html[2])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=200 * 2 ** level, crystal=400 * 2 ** level, deuterium=200 * 2 ** level)
 
         class alliance_depot_class:
-            info = OGame2.building_info(facilities_html[3])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level)
 
         class missile_silo_class:
-            info = OGame2.building_info(facilities_html[4])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=20000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=1000 * 2 ** level)
 
         class nanite_factory_class:
-            info = OGame2.building_info(facilities_html[5])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[5]
+            data = OGame2.collect_status(status[5])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000000 * 2 ** level, crystal=500000 * 2 ** level,
                                    deuterium=100000 * 2 ** level)
 
         class terraformer_class:
-            info = OGame2.building_info(facilities_html[6])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[6]
+            data = OGame2.collect_status(status[6])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(crystal=50000 * 2 ** level, deuterium=100000 * 2 ** level)
 
         class repair_dock_class:
-            info = OGame2.building_info(facilities_html[7])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[7]
+            data = OGame2.collect_status(status[7])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=int(40 * 5 ** level),
                                    deuterium=int(10 * 5 ** level))
 
@@ -352,9 +355,7 @@ class OGame2(object):
         return facilities_buildings
 
     def moon_facilities(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
+        response = self.session.get(self.index_php + 'page=ingame&component=facilities&cp={}'.format(id)).text
         marker_string = '''class="level"
                   data-value="'''
 
@@ -606,55 +607,68 @@ class OGame2(object):
         return defences_class
 
     def galaxy(self, coordinates):
-        planet_info = []
-        galaxy = coordinates[0]
-        system = coordinates[1]
-        form_data = {'galaxy': galaxy, 'system': system}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=galaxyContent&ajax=1'
-                                     .format(self.server_number, self.server_language),
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        planets = response['galaxy'].split('data-planet-id=')
-        del planets[0]
-        for planet in planets:
-            coordinates_raw = planet.split('[')[1].split(']')[0].split(':')
+        form_data = {'galaxy': coordinates[0], 'system': coordinates[1]}
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=galaxyContent&ajax=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
+        html = OGame2.HTML(response['galaxy'])
+        moons = [int(moon.replace('moon', '')) for moon in html.find_all('rel', 'moon', 'attribute')]
+
+        def collect_player():
+            player_names = []
+            player_ids = []
+            player_ids_count = 0
+            allys = html.find_all('rel', 'alliance', 'value')
+            for name in html.find_all('class', 'status_abbr_', 'value'):
+                if name not in ['A', 's', 'n', 'o', 'u', 'g', 'i', 'I', 'ep', ''] and name not in allys:
+                    player_names.append(name)
+                    if self.player != name:
+                        player_ids.append(int(html.find_all('id', 'player', 'attribute')
+                                              [player_ids_count].replace('player', '')))
+                        player_ids_count += 1
+                    else:
+                        player_ids.append(self.player_id)
+            return player_names, player_ids
+
+        def collect_status():
+            stati = []
+            for status in html.find_all('class', 'row', 'attribute')[5:]:
+                if 'rowempty' in status:
+                    continue
+                elif 'row' == status:
+                    stati.append([const.status.active])
+                else:
+                    activitys = []
+                    for activity in [const.status.active, const.status.inactive, const.status.vacation,
+                                     const.status.noob, const.status.honorableTarget]:
+                        if activity in status and activity != 'active':
+                            activitys.append(activity)
+                    stati.append(activitys)
+            return stati
+
+        planets = []
+        for planet_pos, planet_name, planet_player, planet_player_id, planet_status in zip(
+                [int(pos.replace('planet', '')) for pos in html.find_all('rel', 'planet', 'attribute')],
+                html.find_all('class', 'planetname', 'value'),
+                collect_player()[0],
+                collect_player()[1],
+                collect_status()):
 
             class planet_class:
-                planet_name = planet.split('<h1>Planet:')[1][26:50].split('<')[0]
-                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]),
-                                                int(coordinates_raw[2]))
-                player = None
-                status = None
-                if '<span class="status_abbr_active">' in planet:
-                    player = planet.split('<span class="status_abbr_active">')[1].split('<')[0]
-                    status = 'active'
-                if '<span class="status_abbr_inactive">' in planet:
-                    player = planet.split('<span class="status_abbr_inactive">')[1].split('<')[0]
-                    status = 'inactive'
-                elif '<span class="status_abbr_longinactive">' in planet:
-                    player = planet.split('<span class="status_abbr_longinactive">')[1].split('<')[0]
-                    status = 'longinactive'
-                elif '<span class="status_abbr_vacation">' in planet:
-                    player = planet.split('<span class="status_abbr_vacation">')[1].split('<')[0]
-                    status = 'vacation'
-                elif '<span class="status_abbr_admin">' in planet:
-                    player = planet.split('<span class="status_abbr_admin">')[1].split('<')[0]
-                    status = 'admin'
-                elif '<span class="status_abbr_honorableTarget">' in planet:
-                    player = planet.split('<span class="status_abbr_honorableTarget">')[1].split('<')[0]
-                    status = 'honorableTarget'
-                elif '<span class="status_abbr_noob">' in planet:
-                    player = planet.split('<span class="status_abbr_noob">')[1].split('<')[0]
-                    status = 'noob'
-                if '<div class="moon_a"' in planet:
+                position = [coordinates[0], coordinates[1], planet_pos]
+                name = planet_name
+                player = planet_player
+                player_id = planet_player_id
+                status = planet_status
+                if planet_pos in moons:
                     moon = True
                 else:
                     moon = False
-                list = [planet_name, coordinates, player, status, moon]
-
-            planet_info.append(planet_class)
-        return planet_info
+                list = [name, position, player, player_id, status, moon]
+            planets.append(planet_class)
+        return planets
 
     def ally(self):
         ally_name = None
@@ -757,7 +771,9 @@ class OGame2(object):
         response = self.session.post(
             url=self.index_php + 'page=ajaxChat',
             data=form_data,
-            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
+        print(self.chat_token)
         self.chat_token = response['newToken']
 
     def spyreports(self):
@@ -780,7 +796,7 @@ class OGame2(object):
                         coordinates.append(const.destination.planet)
                     else:
                         coordinates.append(const.destination.moon)
-                    time = datetime.strptime(fright[5], '%d.%m.%Y %H:%M:%S')
+                    time = datetime.strptime(fright[5], '%d.%m.%Y%H:%M:%S')
                     resources = spy_html.find_all('class', 'resource_list', 'attribute', 'title')
                     resources = [resources[0], resources[1], resources[2]]
                     resources = [int(resource.replace('.', '')) for resource in resources]

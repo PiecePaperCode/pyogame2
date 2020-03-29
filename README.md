@@ -307,11 +307,12 @@ def.missile_interplanetary
 empire.galaxy(coordinates)          returns list of class(object)
 </pre>
 ```python
-for planet in empire.galaxy(coordinates(1, 23)):
-    print(planet.list)                  #returns all infos as a list
-    print(planet.planet_name, planet.coordinates, planet.player, planet.status, planet.moon)
-    if planet.status == status.longinactive:
+for planet in empire.galaxy(coordinates(randint(1,6), randint(1,499))):
+    print(planet.list)
+    print(planet.name, planet.position, planet.player, planet.player_id, planet.status, planet.moon)
+    if status.inactive in planet.status:
         #Farm Inactive
+
 ```        
 
 ### get ally
@@ -460,7 +461,7 @@ ships.espionage_probe(int)
                                         returns None
 </pre>
 
-### research
+### do research
 ```python
 from pyogame2.constants import research
 empire.do_research(research=research.energy, id=id)

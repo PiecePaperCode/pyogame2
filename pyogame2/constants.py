@@ -160,11 +160,9 @@ def resources(metal=0, crystal=0, deuterium=0):
 class status:
     active = 'active'
     inactive = 'inactive'
-    longinactive = 'longinactive'
     vacation = 'vacation'
-    admin = 'admin'
-    noob = 'noob'
-    honorableTarget = 'honorableTarget'
+    noob = 'newbie'
+    honorableTarget = 'strong'
 
 
 class messages:
