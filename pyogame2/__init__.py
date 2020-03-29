@@ -168,6 +168,9 @@ class OGame2(object):
                          html.find_all('id', 'resources_crystal', 'value')[0],
                          html.find_all('id', 'resources_deuterium', 'value')[0]]
             resources = [to_int(resource) for resource in resources]
+            metal = resources[0]
+            crystal = resources[1]
+            deuterium = resources[2]
             production = html.find_all('class', 'tooltipCustom', 'value')
             production = [product for product in production]
             day_production = [to_int(production[67]), to_int(production[68]), to_int(production[69])]
@@ -478,7 +481,7 @@ class OGame2(object):
         quantity = None
         priceType = None
         price_form = None
-        self.session.get(self.index_php + 'page=ingame&component=marketplace&tab=create_offer&cp={}'.format(id))
+        self.session.get(self.index_php + 'page=ingame&component=marketplace&tab=overview&cp={}'.format(id))
         if const.ships.is_ship(offer):
             itemType = 1
             ItemId = const.ships.ship_id(offer)
@@ -495,16 +498,18 @@ class OGame2(object):
                 priceType = i + 1
                 price_form = res
                 break
-        form_data = {'marketItemType': 2,
+        form_data = {'marketItemType': 4,
                      'itemType': itemType,
                      'itemId': ItemId,
                      'quantity': quantity,
                      'priceType': priceType,
-                     'price': price_form}
+                     'price': price_form,
+                     'priceRange': 10}
         response = self.session.post(
             url=self.index_php + 'page=ingame&component=marketplace&tab=create_offer&action=submitOffer&asJson=1',
             data=form_data,
-            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         if response['status'] == 'success':
             return True
         else:
@@ -663,7 +668,7 @@ class OGame2(object):
                 collect_status()):
 
             class planet_class:
-                position = [coordinates[0], coordinates[1], planet_pos]
+                position = const.coordinates(coordinates[0], coordinates[1], planet_pos)
                 name = planet_name
                 player = planet_player
                 player_id = planet_player_id
@@ -836,8 +841,8 @@ class OGame2(object):
         html = OGame2.HTML(response)
         sendfleet_token = None
         for line in html.find_all('type', 'textjavascript', 'value'):
-            if 'var fleetSendingToken' in line:
-                sendfleet_token = line.split('var fleetSendingToken = ')[1].split('"')[1]
+            if 'fleetSendingToken' in line:
+                sendfleet_token = line.split('fleetSendingToken=')[1].split('"')[1]
                 break
         form_data = {'token': sendfleet_token}
         for ship in ships:
@@ -862,6 +867,7 @@ class OGame2(object):
             url=self.index_php + 'page=ingame&component=fleetdispatch&action=sendFleet&ajax=1&asJson=1',
             data=form_data,
             headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        print(sendfleet_token, response)
         return response['success']
 
     def return_fleet(self, fleet_id):
