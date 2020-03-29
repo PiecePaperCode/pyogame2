@@ -230,7 +230,7 @@ empire.submit_marketplace(offer=ships.large_transporter(10),
 it will collect all your orders at once that are not collected yet buy & sell orders
 </pre>
 <pre>
-empire.collect_marketplace()            returns bool
+empire.collect_marketplace()        returns None (Ogame doesnt return a json return message anymore)
 </pre>
 
 ### get traider
@@ -361,7 +361,8 @@ empire.spyreports()                  returns list of class(object)
 
 ```python
 for spyreport in empire.spyreports():
-    print(spyreport.id, spyreport.time, spyreport.coordinates, spyreport.resources, spyreport.technology)
+    print(spyreport.id, spyreport.time, spyreport.coordinates, 
+          spyreport.resources, spyreport.technology, spyreport.list)
     
     # you need to check bacause somtimes spymissions fail
     if buildings.metal_mine in spyreports.technology:
@@ -386,7 +387,7 @@ empire.send_fleet(mission=mission.expedition,
 
 ### send message
 <pre>
-empire.send_message(player_id, msg)     returns None
+empire.send_message(player_id, msg)     returns bool
 </pre>
 
 

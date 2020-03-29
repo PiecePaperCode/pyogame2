@@ -4,11 +4,11 @@ from datetime import datetime
 
 try:
     import constants as const
-except Exception:
-    # DEBUG So it works on Local Download or PIP install
+except ImportError:
     import pyogame2.constants as const
 
 
+# noinspection PyShadowingBuiltins
 class OGame2(object):
     def __init__(self, universe, username, password, user_agent=None, proxy=''):
         self.universe = universe
@@ -46,32 +46,17 @@ class OGame2(object):
             '&server[language]={}'
             '&server[number]={}'
             '&clickedButton=account_list'
-                .format(self.server_id, self.server_language, self.server_number)).json()
+            .format(self.server_id, self.server_language, self.server_number)).json()
 
-        self.index_php = \
-            'https://s{}-{}.ogame.gameforge.com/game/index.php?' \
-                .format(self.server_number, self.server_language)
+        self.index_php = 'https://s{}-{}.ogame.gameforge.com/game/index.php?'\
+            .format(self.server_number, self.server_language)
         self.landing_page = self.session.get(login_link['url']).text
         response = self.session.get(self.index_php + 'page=ingame').text
         self.landing_page = OGame2.HTML(response)
 
         self.chat_token = None
-        OGame2.init_chatroken(self)
-
         self.player = self.landing_page.find_all('class', 'overlaytextBeefy', 'value')
         self.player_id = self.landing_page.find_all('name', 'ogame-player-id', 'attribute', 'content')
-
-    # support functions
-    def init_chatroken(self):
-        for line in self.landing_page.find_all('type', 'textjavascript', 'value'):
-            if 'var ajaxChatToken' in line:
-                self.chat_token = line.split('var ajaxChatToken = ')[1].split('"')[1]
-                break
-
-    def init_build_token(self, content, component):
-        marker_string = 'component={}&modus=1&token='.format(component)
-        for re_obj in re.finditer(marker_string, content):
-            self.build_token = content[re_obj.start() + len(marker_string): re_obj.end() + 32]
 
     class HTML:
         def __init__(self, response):
@@ -105,9 +90,9 @@ class OGame2(object):
                 elif result == 'attribute':
                     attributes.append(line[result][same_element_attribute])
                 else:
-                    value = line[result].replace(' ', '')
-                    if value is not '':
-                        attributes.append(value)
+                    val = line[result].replace(' ', '')
+                    if val is not '':
+                        attributes.append(val)
             for line in self.parsed.values():
                 try:
                     if attribute_tag in line['attribute']:
@@ -117,10 +102,8 @@ class OGame2(object):
                             append_attributes()
                 except KeyError:
                     continue
-
             return attributes
 
-    # main functions
     def attacked(self):
         response = self.session.get(
             url=self.index_php + 'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1',
@@ -355,30 +338,61 @@ class OGame2(object):
         return facilities_buildings
 
     def moon_facilities(self, id):
-        response = self.session.get(self.index_php + 'page=ingame&component=facilities&cp={}'.format(id)).text
-        marker_string = '''class="level"
-                  data-value="'''
+        response = self.session.get('{}page=ingame&component=facilities&cp={}'.format(self.index_php, id)).text
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
+
+        class robotics_factory_class:
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=400 * 2 ** level, crystal=120 * 2 ** level, deuterium=200 * 2 ** level)
+
+        class shipyard_class:
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=200 * 2 ** level, crystal=100 * 2 ** level, deuterium=50 * 2 ** level)
+
+        class moon_base_class:
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
+
+        class sensor_phalanx_class:
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
+
+        class jump_gate_class:
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
 
         class moon_facilities_buildings(object):
-            facilities_buildings = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                facilities_buildings.append(int(response[re_obj.start() + len(marker_string):
-                                                         re_obj.end() + 3].split('"')[0]))
-            robotics_factory = facilities_buildings[0]
-            shipyard = facilities_buildings[1]
-            moon_base = facilities_buildings[2]
-            sensor_phalanx = facilities_buildings[3]
-            jump_gate = facilities_buildings[4]
+            robotics_factory = robotics_factory_class
+            shipyard = shipyard_class
+            moon_base = moon_base_class
+            sensor_phalanx = sensor_phalanx_class
+            jump_gate = jump_gate_class
 
         return moon_facilities_buildings
 
     def marketplace(self, id, page):
         biddings = []
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
-                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D={}&cp={}' \
-                                    .format(self.server_number, self.server_language, page, id),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.get(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+            'pagination%5Bpage%5D={}&cp={}'.format(page, id),
+            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
 
         def item_type(item):
             type = None
@@ -443,16 +457,17 @@ class OGame2(object):
         return biddings
 
     def buy_marketplace(self, market_id, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D={}&cp={}'
-                                    .format(self.server_number, self.server_language, 1, id),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        self.session.get(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+            'pagination%5Bpage%5D={}&cp={}'.format(1, id),
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         form_data = {'marketItemId': market_id}
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=marketplace&tab=buying&action=acceptRequest&asJson=1',
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=acceptRequest&asJson=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         if response['status'] == 'success':
             return True
         else:
@@ -463,9 +478,7 @@ class OGame2(object):
         quantity = None
         priceType = None
         price_form = None
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=marketplace&tab=create_offer&cp={}'
-                                    .format(self.server_number, self.server_language, id))
+        self.session.get(self.index_php + 'page=ingame&component=marketplace&tab=create_offer&cp={}'.format(id))
         if const.ships.is_ship(offer):
             itemType = 1
             ItemId = const.ships.ship_id(offer)
@@ -488,11 +501,10 @@ class OGame2(object):
                      'quantity': quantity,
                      'priceType': priceType,
                      'price': price_form}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=marketplace&tab=create_offer&action=submitOffer&asJson=1'
-                                     .format(self.server_number, self.server_language),
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=create_offer&action=submitOffer&asJson=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['status'] == 'success':
             return True
         else:
@@ -504,30 +516,24 @@ class OGame2(object):
         action = ['fetchHistoryBuyingItems', 'fetchHistorySellingItems']
         collect = ['collectItem', 'collectPrice']
         for page, action, collect in zip(history_pages, action, collect):
-            response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                        'component=marketplace&tab={}&action={}&ajax=1&'
-                                        'pagination%5Bpage%5D=1'
-                                        .format(self.server_number, self.server_language,
-                                                page, action, OGame2.planet_ids(self)[0]),
-                                        headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+            response = self.session.get(
+                url=self.index_php + 'page=ingame&component=marketplace&tab={}&action={}&ajax=1&pagination%5Bpage%5D=1'
+                .format(page, action, OGame2.planet_ids(self)[0]),
+                headers={'X-Requested-With': 'XMLHttpRequest'}
+            ).json()
             items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
             del items[0]
             for item in items:
                 if 'buttons small enabled' in item:
                     to_collect_market_ids.append(int(item[1:10].split('"')[0]))
-
-            response['status'] = False
             for id in to_collect_market_ids:
                 form_data = {'marketTransactionId': id}
-                response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
-                                             'component=marketplace&action={}&asJson=1'
-                                             .format(self.server_number, self.server_language, collect),
-                                             data=form_data,
-                                             headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        if response['status'] == 'success':
-            return True
-        else:
-            return False
+                response = self.session.post(
+                    url=self.index_php + 'page=componentOnly&component=marketplace&action={}&asJson=1'.format(collect),
+                    data=form_data,
+                    headers={'X-Requested-With': 'XMLHttpRequest'}
+                ).json()
+            print(response)
 
     def traider(self, id):
         raise Exception("function not implemented yet PLS contribute")
@@ -671,12 +677,7 @@ class OGame2(object):
         return planets
 
     def ally(self):
-        ally_name = None
-        response = self.session.get(self.index_php + 'page=alliance').text
-        marker_string = '<meta name="ogame-alliance-name" content="'
-        for re_obj in re.finditer(marker_string, response):
-            ally_name = response[re_obj.start() + len(marker_string): re_obj.end() + 10].split('"')[0]
-        return ally_name
+        return self.landing_page.find_all('name', 'ogame-alliance-name', 'attribute', 'content')
 
     def officers(self):
         raise Exception("function not implemented yet PLS contribute")
@@ -721,7 +722,7 @@ class OGame2(object):
     def phalanx(self, coordinates, id):
         response = self.session.get(
             url=self.index_php + 'page=phalanx&galaxy={}&system={}&position={}&ajax=1&cp={}'
-                .format(coordinates[0], coordinates[1], coordinates[2], id)
+            .format(coordinates[0], coordinates[1], coordinates[2], id)
         ).text
         html = OGame2.HTML(response)
         missions = len(html.find_all('id', 'eventRow-', 'attribute'))
@@ -763,18 +764,26 @@ class OGame2(object):
         return html
 
     def send_message(self, player_id, msg):
+        response = self.session.get(self.index_php + 'page=chat').text
+        html = OGame2.HTML(response)
+        for line in html.find_all('type', 'textjavascript', 'value'):
+            if 'ajaxChatToken' in line:
+                chat_token = line.split('ajaxChatToken=')[1].split('"')[1]
+                break
         form_data = {'playerId': player_id,
                      'text': msg,
                      'mode': 1,
                      'ajax': 1,
-                     'token': self.chat_token}
+                     'token': chat_token}
         response = self.session.post(
             url=self.index_php + 'page=ajaxChat',
             data=form_data,
             headers={'X-Requested-With': 'XMLHttpRequest'}
         ).json()
-        print(self.chat_token)
-        self.chat_token = response['newToken']
+        if 'OK' in response['status']:
+            return True
+        else:
+            return False
 
     def spyreports(self):
         html = OGame2.messages(self, const.messages.spy_reports, 1)
@@ -782,7 +791,7 @@ class OGame2(object):
         for message in html.find_all('data-msg-id', '', 'attribute'):
             response = self.session.get(
                 url=self.index_php + 'page=messages&messageId={}&tabid={}&ajax=1'
-                    .format(message, const.messages.spy_reports)
+                .format(message, const.messages.spy_reports)
             ).text
             spy_html = OGame2.HTML(response)
             fright = spy_html.find_all('class', 'fright', 'value')
@@ -817,6 +826,7 @@ class OGame2(object):
                         if research != 'research_imagefloat_left':
                             tech.append(const.convert_tech(int(research.replace('research', '')), 'research'))
                     technology = dict((tech, amount) for tech, amount in zip(tech, fright[7:]))
+                    list = [id, time, coordinates, resources, technology]
 
                 spyreports.append(spy_report_class)
         return spyreports
@@ -824,19 +834,15 @@ class OGame2(object):
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10, holdingtime=0):
         response = self.session.get(self.index_php + 'page=ingame&component=fleetdispatch&cp={}'.format(id)).text
         html = OGame2.HTML(response)
-
         sendfleet_token = None
         for line in html.find_all('type', 'textjavascript', 'value'):
             if 'var fleetSendingToken' in line:
                 sendfleet_token = line.split('var fleetSendingToken = ')[1].split('"')[1]
                 break
-
         form_data = {'token': sendfleet_token}
-
         for ship in ships:
             ship_type = 'am{}'.format(ship[0])
             form_data.update({ship_type: ship[1]})
-
         form_data.update({'galaxy': where[0],
                           'system': where[1],
                           'position': where[2],
@@ -852,7 +858,6 @@ class OGame2(object):
                           'retreatAfterDefenderRetreat': 0,
                           'union': 0,
                           'holdingtime': holdingtime})
-
         response = self.session.post(
             url=self.index_php + 'page=ingame&component=fleetdispatch&action=sendFleet&ajax=1&asJson=1',
             data=form_data,
@@ -867,10 +872,14 @@ class OGame2(object):
         amount = what[1]
         component = what[2]
         response = self.session.get(self.index_php + 'page=ingame&component={}&cp={}'.format(component, id)).text
-        OGame2.init_build_token(self, response, component)
-
+        html = OGame2.HTML(response)
+        build_token = None
+        for line in html.find_all('type', 'javascript', 'value'):
+            if 'urlQueueAdd' in line:
+                build_token = line.split('token=')[1].split('\'')[0]
+                break
         build_url = self.index_php + 'page=ingame&component={}&modus=1&token={}&type={}&menge={}' \
-            .format(component, self.build_token, type, amount)
+            .format(component, build_token, type, amount)
         self.session.get(build_url)
 
     def do_research(self, research, id):
