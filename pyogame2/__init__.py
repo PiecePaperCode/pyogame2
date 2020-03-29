@@ -4,24 +4,18 @@ from datetime import datetime
 
 try:
     import constants as const
-except Exception as e:
-    # DEBUG So it works on Local Download or PIP install
+except ImportError:
     import pyogame2.constants as const
 
 
+# noinspection PyShadowingBuiltins
 class OGame2(object):
     def __init__(self, universe, username, password, user_agent=None, proxy=''):
         self.universe = universe
         self.username = username
         self.password = password
-        self.chat_token = None
-        self.sendfleet_token = None
-        self.build_token = None
         self.session = requests.Session()
         self.session.proxies.update({'https': proxy})
-        self.server_id = None
-        self.server_number = None
-        self.server_language = None
         if user_agent is None:
             user_agent = {
                 'User-Agent':
@@ -29,16 +23,12 @@ class OGame2(object):
                     'Chrome/80.0.3987.100 Mobile Safari/537.36'}
         self.session.headers.update(user_agent)
 
-        OGame2.login(self)
-        OGame2.get_init_chatroken(self)
-
-    def login(self):
-        form_data = {'kid': '',
-                     'language': 'en',
-                     'autologin': 'false',
-                     'credentials[email]': self.username,
-                     'credentials[password]': self.password}
-        logged = self.session.post('https://lobby.ogame.gameforge.com/api/users', data=form_data)
+        login_data = {'kid': '',
+                      'language': 'en',
+                      'autologin': 'false',
+                      'credentials[email]': self.username,
+                      'credentials[password]': self.password}
+        self.session.post('https://lobby.ogame.gameforge.com/api/users', data=login_data)
         servers = self.session.get('https://lobby.ogame.gameforge.com/api/servers').json()
         for server in servers:
             if server['name'] == self.universe:
@@ -49,211 +39,214 @@ class OGame2(object):
             if account['server']['number'] == self.server_number:
                 self.server_id = account['id']
                 self.server_language = account['server']['language']
-        login_link = self.session.get('https://lobby.ogame.gameforge.com/api/users/me/loginLink?'
-                                      'id={}'
-                                      '&server[language]={}'
-                                      '&server[number]={}'
-                                      '&clickedButton=account_list'.format(self.server_id,
-                                                                           self.server_language,
-                                                                           self.server_number)).json()
-        self.session.content = self.session.get(login_link['url']).text
+                break
+        login_link = self.session.get(
+            'https://lobby.ogame.gameforge.com/api/users/me/loginLink?'
+            'id={}'
+            '&server[language]={}'
+            '&server[number]={}'
+            '&clickedButton=account_list'
+            .format(self.server_id, self.server_language, self.server_number)).json()
 
-    # support functions
-    def get_init_chatroken(self):
-        marker_string = 'var ajaxChatToken = '
-        for re_obj in re.finditer(marker_string, self.session.content):
-            self.chat_token = self.session.content[re_obj.start() + len(marker_string): re_obj.end() + 35].split('"')[1]
+        self.index_php = 'https://s{}-{}.ogame.gameforge.com/game/index.php?'\
+            .format(self.server_number, self.server_language)
+        self.landing_page = self.session.get(login_link['url']).text
+        response = self.session.get(self.index_php + 'page=ingame').text
+        self.landing_page = OGame2.HTML(response)
 
-    def get_init_sendfleetroken(self, content):
-        marker_string = 'var fleetSendingToken = '
-        for re_obj in re.finditer(marker_string, content):
-            self.sendfleet_token = content[re_obj.start() + len(marker_string): re_obj.end() + 35].split('"')[1]
+        self.chat_token = None
+        self.player = self.landing_page.find_all('class', 'overlaytextBeefy', 'value')
+        self.player_id = self.landing_page.find_all('name', 'ogame-player-id', 'attribute', 'content')
 
-    def get_init_build_token(self, content, component):
-        marker_string = 'component={}&modus=1&token='.format(component)
-        for re_obj in re.finditer(marker_string, content):
-            self.build_token = content[re_obj.start() + len(marker_string): re_obj.end() + 32]
+    class HTML:
+        def __init__(self, response):
+            self.parsed = {}
+            for index, html in enumerate(response.split('<')):
+                element = html.replace('/', '').replace('\n', '')
+                tag = element.split('>')[0]
+                attribute = tag.split(' ')
+                if ' ' in tag:
+                    tag = tag.split(' ')[0]
+                del attribute[0]
+                attribute = ' '.join(attribute).replace('=', '').replace(' ', '').split('"')
+                attributes = {}
+                for i in range(0, len(attribute), 2):
+                    try:
+                        attributes.update({attribute[i]: attribute[i + 1]})
+                    except IndexError:
+                        break
+                if len(element.split('>')) > 1:
+                    value = element.split('>')[1]
+                else:
+                    value = None
+                self.parsed.update({index: {'tag': tag, 'attribute': attributes, 'value': value}})
 
-    def get_building_info(self):
-        marker_string = 'data-value='
-        marker = self.find(marker_string) + len(marker_string)
-        level = int(self[marker: marker + 4].split('"')[1])
-        is_possible = False
-        if 'data-status="on"' in self:
-            is_possible = True
-        in_construction = False
-        if 'data-status="active"' in self:
-            in_construction = True
-        return level, is_possible, in_construction
+        def find_all(self, attribute_tag, value, result, same_element_attribute=None, exact=False):
+            attributes = []
 
-    # main functions
-    def get_attacked(self):
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                     'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                     .format(self.server_number, self.server_language),
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+            def append_attributes():
+                if result == 'attribute' and same_element_attribute is None:
+                    attributes.append(line[result][attribute_tag])
+                elif result == 'attribute':
+                    attributes.append(line[result][same_element_attribute])
+                else:
+                    val = line[result].replace(' ', '')
+                    if val is not '':
+                        attributes.append(val)
+            for line in self.parsed.values():
+                try:
+                    if attribute_tag in line['attribute']:
+                        if value in line['attribute'][attribute_tag] and exact is False:
+                            append_attributes()
+                        elif value == line['attribute'][attribute_tag] and exact is True:
+                            append_attributes()
+                except KeyError:
+                    continue
+            return attributes
+
+    def attacked(self):
+        response = self.session.get(
+            url=self.index_php + 'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1',
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         if response['hostile'] > 0:
             return True
         else:
             return False
 
-    def get_neutral(self):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                    .format(self.server_number, self.server_language),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+    def neutral(self):
+        response = self.session.get(
+            url=self.index_php + 'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1',
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         if response['neutral'] > 0:
             return True
         else:
             return False
 
-    def get_speed(self):
+    def speed(self):
         class speed:
-            universe = int(self.session.content.split('<meta name="ogame-universe-speed" content=')[1].split('"')[1])
-            fleet = int(self.session.content.split('<meta name="ogame-universe-speed-fleet" content=')[1].split('"')[1])
-
+            universe = int(self.landing_page.find_all('content', '', 'attribute')[6])
+            fleet = int(self.landing_page.find_all('content', '', 'attribute')[7])
         return speed
 
-    def get_planet_ids(self):
-        planet_ids = []
-        marker_string = 'id="planet-'
-        for planet_id in re.finditer(marker_string, self.session.content):
-            id = self.session.content[planet_id.start() + 11:planet_id.end() + 8]
-            planet_ids.append(int(id))
-        return planet_ids
+    def planet_ids(self):
+        planets = self.landing_page.find_all('id', 'planet-', 'attribute')
+        return [int(planet.replace('planet-', '')) for planet in planets]
 
-    def get_planet_names(self):
-        planet_names = []
-        marker_string = 'planet-name ">'
-        for i, planet_name in enumerate(re.finditer(marker_string, self.session.content)):
-            planet_name = self.session.content[planet_name.start() + 14:planet_name.end() + 20].split('<')[0]
-            planet_names.append(planet_name)
-        return planet_names
+    def planet_names(self):
+        return self.landing_page.find_all('class', 'planet-name', 'value')
 
-    def get_id_by_planet_name(self, name):
-        planet_id = None
-        marker_string = 'planet-name ">'
-        for i, planet_name in enumerate(re.finditer(marker_string, self.session.content)):
-            planet_name = self.session.content[planet_name.start() + 14:planet_name.end() + len(name)]
+    def id_by_planet_name(self, name):
+        for planet_name, id in zip(OGame2.planet_names(self), OGame2.planet_ids(self)):
             if planet_name == name:
-                planet_id = OGame2.get_planet_ids(self)[i]
-                break
-        return planet_id
+                return id
 
-    def get_moon_ids(self):
-        moon_ids = []
-        marker_string = 'data-jumpgateLevel'
-        for planet_id in re.finditer(marker_string, self.session.content):
-            id = self.session.content[planet_id.start() - 41:planet_id.end() - 51]
-            moon_ids.append(int(id))
-        return moon_ids
+    def moon_ids(self):
+        moons = self.landing_page.find_all('class', 'moonlink', 'attribute', 'href')
+        return [moon_id.split('cp')[1] for moon_id in moons]
 
-    def get_celestial_coordinates(self, id):
-        galaxy = None
-        system = None
-        position = None
-        destination = None
-        marker_string = 'component=galaxy&amp;cp={}'.format(id)
-        for coordinates in re.finditer(marker_string, self.session.content):
-            raw_coordinates = self.session.content[coordinates.start() + 37:coordinates.end() + 50]
-            coordinates = raw_coordinates.replace('&amp', '').split('&')[0].split(';')
-            galaxy = int(coordinates[0].replace('galaxy=', ''))
-            system = int(coordinates[1].replace('system=', ''))
-            position = int(coordinates[2].replace('position=', ''))
-        if id in OGame2.get_planet_ids(self):
-            destination = const.destination.planet
-        elif id in OGame2.get_moon_ids(self):
-            destination = const.destination.moon
-        return [galaxy, system, position, destination]
+    def celestial_coordinates(self, id):
+        celestial = self.landing_page.find_all('title', 'componentgalaxy&amp;cp{}'.format(id), 'attribute')
+        coordinates = celestial[0].split('componentgalaxy&amp;cp{}&amp;'.format(id))[1].split('&quot;')[0] \
+            .replace('&amp', '').replace('galaxy', '').replace('system', '').replace('position', '').split(';')
+        if 'moon' in self.landing_page.find_all('title', 'galaxy&amp;cp{}'.format(id), 'attribute', 'class')[0]:
+            coordinates.append(const.destination.moon)
+        else:
+            coordinates.append(const.destination.planet)
+        return coordinates
 
-    def get_resources(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=resourceSettings&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
+    def resources(self, id):
+        response = self.session.get(self.index_php + 'page=resourceSettings&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
 
-        resources_names = ['metal', 'crystal', 'deuterium', 'darkmatter', 'energy']
-        resources_list = []
-        for name in resources_names:
-            marker_string = '<span id="resources_{}" data-raw='.format(name)
-            resources_list.append(int(response.split(marker_string)[1]
-                                      .split('>')[1].split('<')[0].split(',')[0].replace('.', '')))
+        def to_int(string):
+            return int(string.replace('.', '').replace(',', '').replace('M', '000'))
 
-        production = [res.split('"')[1].replace('.', '')
-                      for res in response.split('<span class="tooltipCustom" title=')]
-
-        class resources(object):
-            metal = resources_list[0]
-            crystal = resources_list[1]
-            deuterium = resources_list[2]
-
-            resources = [metal, crystal, deuterium]
-            day_production = [int(res) for res in [production[12], production[13], production[14]]]
-            darkmatter = resources_list[3]
-            energy = resources_list[4]
+        class resources:
+            resources = [html.find_all('id', 'resources_metal', 'value')[0],
+                         html.find_all('id', 'resources_crystal', 'value')[0],
+                         html.find_all('id', 'resources_deuterium', 'value')[0]]
+            resources = [to_int(resource) for resource in resources]
+            production = html.find_all('class', 'tooltipCustom', 'value')
+            production = [product for product in production]
+            day_production = [to_int(production[67]), to_int(production[68]), to_int(production[69])]
+            darkmatter = to_int(html.find_all('id', 'resources_darkmatter', 'value')[0])
+            energy = to_int(html.find_all('id', 'resources_energy', 'value')[0])
 
         return resources
 
-    def get_supply(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=supplies&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        marker_string = '<li class="technology '
-        supply_html = response.split(marker_string)
-        del supply_html[0]
+    def collect_status(self):
+        if self == 'on':
+            is_possible = True
+        else:
+            is_possible = False
+        if self == 'active':
+            in_construction = True
+        else:
+            in_construction = False
+        return is_possible, in_construction
+
+    def supply(self, id):
+        response = self.session.get(self.index_php + 'page=ingame&component=supplies&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
 
         class metal_mine_class:
-            info = OGame2.get_building_info(supply_html[0])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=60 * 1.5 ** level, crystal=15 * 1.5 ** level)
 
         class crystal_mine_class:
-            info = OGame2.get_building_info(supply_html[1])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=48 * 1.6 ** level, crystal=24 * 1.6 ** level)
 
         class deuterium_mine_class:
-            info = OGame2.get_building_info(supply_html[2])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=225 * 1.5 ** level, crystal=75 * 1.5 ** level)
 
         class solar_plant_class:
-            info = OGame2.get_building_info(supply_html[3])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=75 * 1.5 ** level, crystal=30 * 1.5 ** level)
 
         class fusion_plant_class:
-            info = OGame2.get_building_info(supply_html[4])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=900 * 1.8 ** level, crystal=360 * 1.8 ** level, deuterium=180 * 1.8 ** level)
 
         class metal_storage_class:
-            info = OGame2.get_building_info(supply_html[7])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[5]
+            data = OGame2.collect_status(status[5])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level)
 
         class crystal_storage_class:
-            info = OGame2.get_building_info(supply_html[8])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[6]
+            data = OGame2.collect_status(status[6])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level, crystal=500 * 2 ** level)
 
         class deuterium_storage_class:
-            info = OGame2.get_building_info(supply_html[9])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[7]
+            data = OGame2.collect_status(status[7])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000 * 2 ** level, crystal=1000 * 2 ** level)
 
         class supply_buildings(object):
@@ -268,69 +261,67 @@ class OGame2(object):
 
         return supply_buildings
 
-    def get_facilities(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        marker_string = '<li class="technology '
-        facilities_html = response.split(marker_string)
-        del facilities_html[0]
+    def facilities(self, id):
+        response = self.session.get(self.index_php + 'page=ingame&component=facilities&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
 
         class robotics_factory_class:
-            info = OGame2.get_building_info(facilities_html[0])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=400 * 2 ** level, crystal=120 * 2 ** level, deuterium=200 * 2 ** level)
 
         class shipyard_class:
-            info = OGame2.get_building_info(facilities_html[1])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=200 * 2 ** level, crystal=100 * 2 ** level, deuterium=50 * 2 ** level)
 
         class research_laboratory_class:
-            info = OGame2.get_building_info(facilities_html[2])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=200 * 2 ** level, crystal=400 * 2 ** level, deuterium=200 * 2 ** level)
 
         class alliance_depot_class:
-            info = OGame2.get_building_info(facilities_html[3])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level)
 
         class missile_silo_class:
-            info = OGame2.get_building_info(facilities_html[4])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=20000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=1000 * 2 ** level)
 
         class nanite_factory_class:
-            info = OGame2.get_building_info(facilities_html[5])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[5]
+            data = OGame2.collect_status(status[5])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=1000000 * 2 ** level, crystal=500000 * 2 ** level,
                                    deuterium=100000 * 2 ** level)
 
         class terraformer_class:
-            info = OGame2.get_building_info(facilities_html[6])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[6]
+            data = OGame2.collect_status(status[6])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(crystal=50000 * 2 ** level, deuterium=100000 * 2 ** level)
 
         class repair_dock_class:
-            info = OGame2.get_building_info(facilities_html[7])
-            level = info[0]
-            is_possible = info[1]
-            in_construction = info[2]
+            level = levels[7]
+            data = OGame2.collect_status(status[7])
+            is_possible = data[0]
+            in_construction = data[1]
             cost = const.resources(metal=int(40 * 5 ** level),
                                    deuterium=int(10 * 5 ** level))
 
@@ -346,35 +337,64 @@ class OGame2(object):
 
         return facilities_buildings
 
-    def get_moon_facilities(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=facilities&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        marker_string = '''class="level"
-                  data-value="'''
+    def moon_facilities(self, id):
+        response = self.session.get('{}page=ingame&component=facilities&cp={}'.format(self.index_php, id)).text
+        html = OGame2.HTML(response)
+        levels = [int(level) for level in html.find_all('class', 'level', 'attribute', 'data-value', exact=True)]
+        status = html.find_all('data-technology', '', 'attribute', 'data-status')
+
+        class robotics_factory_class:
+            level = levels[0]
+            data = OGame2.collect_status(status[0])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=400 * 2 ** level, crystal=120 * 2 ** level, deuterium=200 * 2 ** level)
+
+        class shipyard_class:
+            level = levels[1]
+            data = OGame2.collect_status(status[1])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=200 * 2 ** level, crystal=100 * 2 ** level, deuterium=50 * 2 ** level)
+
+        class moon_base_class:
+            level = levels[2]
+            data = OGame2.collect_status(status[2])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
+
+        class sensor_phalanx_class:
+            level = levels[3]
+            data = OGame2.collect_status(status[3])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
+
+        class jump_gate_class:
+            level = levels[4]
+            data = OGame2.collect_status(status[4])
+            is_possible = data[0]
+            in_construction = data[1]
+            cost = const.resources(metal=10000 * 2 ** level, crystal=20000 * 2 ** level, deuterium=10000 * 2 ** level)
 
         class moon_facilities_buildings(object):
-            facilities_buildings = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                facilities_buildings.append(int(response[re_obj.start() + len(marker_string):
-                                                         re_obj.end() + 3].split('"')[0]))
-            robotics_factory = facilities_buildings[0]
-            shipyard = facilities_buildings[1]
-            moon_base = facilities_buildings[2]
-            sensor_phalanx = facilities_buildings[3]
-            jump_gate = facilities_buildings[4]
+            robotics_factory = robotics_factory_class
+            shipyard = shipyard_class
+            moon_base = moon_base_class
+            sensor_phalanx = sensor_phalanx_class
+            jump_gate = jump_gate_class
 
         return moon_facilities_buildings
 
-    def get_marketplace(self, id, page):
+    def marketplace(self, id, page):
         biddings = []
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
-                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D={}&cp={}' \
-                                    .format(self.server_number, self.server_language, page, id),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.get(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+            'pagination%5Bpage%5D={}&cp={}'.format(page, id),
+            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
 
-        def get_item_type(item):
+        def item_type(item):
             type = None
             if 'sprite ship small ' in item:
                 type = 'ship', int(item[29:32])
@@ -394,8 +414,8 @@ class OGame2(object):
             class_sprite = []
             for re_obj in re.finditer(ships_resources_marker_string, item):
                 class_sprite.append(item[re_obj.start(): re_obj.end() + 40])
-            to_buy_item_type = get_item_type(class_sprite[0])
-            to_pay_item_type = get_item_type(class_sprite[1])
+            to_buy_item_type = item_type(class_sprite[0])
+            to_pay_item_type = item_type(class_sprite[1])
 
             quantity_marker_string = 'text quantity'
             text_quantity = []
@@ -437,17 +457,17 @@ class OGame2(object):
         return biddings
 
     def buy_marketplace(self, market_id, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
-                                    'pagination%5Bpage%5D={}&cp={}'
-                                    .format(self.server_number, self.server_language, 1, id),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-
+        self.session.get(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=fetchBuyingItems&ajax=1&'
+            'pagination%5Bpage%5D={}&cp={}'.format(1, id),
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         form_data = {'marketItemId': market_id}
-        response = self.session.post('https://s161-de.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=marketplace&tab=buying&action=acceptRequest&asJson=1',
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=buying&action=acceptRequest&asJson=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
         if response['status'] == 'success':
             return True
         else:
@@ -458,14 +478,11 @@ class OGame2(object):
         quantity = None
         priceType = None
         price_form = None
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=marketplace&tab=create_offer&cp={}'
-                                    .format(self.server_number, self.server_language, id))
-
+        self.session.get(self.index_php + 'page=ingame&component=marketplace&tab=create_offer&cp={}'.format(id))
         if const.ships.is_ship(offer):
             itemType = 1
-            ItemId = const.ships.get_ship_id(offer)
-            quantity = const.ships.get_ship_amount(offer)
+            ItemId = const.ships.ship_id(offer)
+            quantity = const.ships.ship_amount(offer)
         else:
             itemType = 2
             for i, res in enumerate(offer):
@@ -473,25 +490,21 @@ class OGame2(object):
                     ItemId = i + 1
                     quantity = res
                     break
-
         for i, res in enumerate(price):
             if res != 0:
                 priceType = i + 1
                 price_form = res
                 break
-
         form_data = {'marketItemType': 2,
                      'itemType': itemType,
                      'itemId': ItemId,
                      'quantity': quantity,
                      'priceType': priceType,
                      'price': price_form}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=marketplace&tab=create_offer&action=submitOffer&asJson=1'
-                                     .format(self.server_number, self.server_language),
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=marketplace&tab=create_offer&action=submitOffer&asJson=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         if response['status'] == 'success':
             return True
         else:
@@ -503,47 +516,36 @@ class OGame2(object):
         action = ['fetchHistoryBuyingItems', 'fetchHistorySellingItems']
         collect = ['collectItem', 'collectPrice']
         for page, action, collect in zip(history_pages, action, collect):
-            response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                        'component=marketplace&tab={}&action={}&ajax=1&'
-                                        'pagination%5Bpage%5D=1'
-                                        .format(self.server_number, self.server_language,
-                                                page, action, OGame2.get_planet_ids(self)[0]),
-                                        headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+            response = self.session.get(
+                url=self.index_php + 'page=ingame&component=marketplace&tab={}&action={}&ajax=1&pagination%5Bpage%5D=1'
+                .format(page, action, OGame2.planet_ids(self)[0]),
+                headers={'X-Requested-With': 'XMLHttpRequest'}
+            ).json()
             items = response['content']['marketplace/marketplace_items_history'].split('data-transactionid=')
             del items[0]
             for item in items:
                 if 'buttons small enabled' in item:
                     to_collect_market_ids.append(int(item[1:10].split('"')[0]))
-
-            response['status'] = False
             for id in to_collect_market_ids:
                 form_data = {'marketTransactionId': id}
-                response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=componentOnly&'
-                                             'component=marketplace&action={}&asJson=1'
-                                             .format(self.server_number, self.server_language, collect),
-                                             data=form_data,
-                                             headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        if response['status'] == 'success':
-            return True
-        else:
-            return False
+                response = self.session.post(
+                    url=self.index_php + 'page=componentOnly&component=marketplace&action={}&asJson=1'.format(collect),
+                    data=form_data,
+                    headers={'X-Requested-With': 'XMLHttpRequest'}
+                ).json()
+            print(response)
 
-    def get_traider(self, id):
+    def traider(self, id):
         raise Exception("function not implemented yet PLS contribute")
 
-    def get_research(self):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=research&cp={}'
-                                    .format(self.server_number, self.server_language,
-                                            OGame2.get_planet_ids(self)[0])).text
-        marker_string = '''class="level"
-                  data-value="'''
+    def research(self):
+        response = self.session.get(
+            url=self.index_php + 'page=ingame&component=research&cp={}'.format(OGame2.planet_ids(self)[0])
+        ).text
+        html = OGame2.HTML(response)
+        research_level = html.find_all('class', 'level', 'attribute', 'data-value', exact=True)
 
-        class research_level(object):
-            research_level = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                research_level.append(int(response[re_obj.start() + len(marker_string):
-                                                   re_obj.end() + 3].split('"')[0]))
+        class research_class:
             energy = research_level[0]
             laser = research_level[1]
             ion = research_level[2]
@@ -561,20 +563,15 @@ class OGame2(object):
             shielding = research_level[14]
             armor = research_level[15]
 
-        return research_level
+        return research_class
 
-    def get_ships(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=shipyard&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        marker_string = '''class="amount"
-                  data-value="'''
+    def ships(self, id):
+        response = self.session.get(self.index_php + 'page=ingame&component=shipyard&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
+        ships_amount = html.find_all('class', 'amount', 'attribute', 'data-value', exact=True)
+        ships_amount = [int(ship) for ship in ships_amount]
 
-        class ships_amount(object):
-            ships_amount = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                ships_amount.append(int(response[re_obj.start() + len(marker_string):
-                                                 re_obj.end() + 10].split('"')[0]))
+        class ships_class(object):
             light_fighter = ships_amount[0]
             heavy_fighter = ships_amount[1]
             cruiser = ships_amount[2]
@@ -593,20 +590,15 @@ class OGame2(object):
             solarSatellite = ships_amount[15]
             crawler = ships_amount[16]
 
-        return ships_amount
+        return ships_class
 
-    def get_defences(self, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=defenses&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        marker_string = '''class="amount"
-                  data-value="'''
+    def defences(self, id):
+        response = self.session.get(self.index_php + 'page=ingame&component=defenses&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
+        defences_amount = html.find_all('class', 'amount', 'attribute', 'data-value', exact=True)
+        defences_amount = [int(ship) for ship in defences_amount]
 
-        class defences_amount(object):
-            defences_amount = []
-            for re_obj in re.finditer(marker_string.format(marker_string), response):
-                defences_amount.append(int(response[re_obj.start() + len(marker_string):
-                                                    re_obj.end() + 10].split('"')[0]))
+        class defences_class(object):
             rocket_launcher = defences_amount[0]
             laser_cannon_light = defences_amount[1]
             laser_cannon_heavy = defences_amount[2]
@@ -618,204 +610,239 @@ class OGame2(object):
             missile_interceptor = defences_amount[8]
             missile_interplanetary = defences_amount[9]
 
-        return defences_amount
+        return defences_class
 
-    def get_galaxy(self, coordinates):
-        planet_info = []
-        galaxy = coordinates[0]
-        system = coordinates[1]
-        form_data = {'galaxy': galaxy, 'system': system}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=galaxyContent&ajax=1'
-                                     .format(self.server_number, self.server_language),
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        planets = response['galaxy'].split('data-planet-id=')
-        del planets[0]
+    def galaxy(self, coordinates):
+        form_data = {'galaxy': coordinates[0], 'system': coordinates[1]}
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=galaxyContent&ajax=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
+        html = OGame2.HTML(response['galaxy'])
+        moons = [int(moon.replace('moon', '')) for moon in html.find_all('rel', 'moon', 'attribute')]
 
-        for planet in planets:
-            coordinates_raw = planet.split('[')[1].split(']')[0].split(':')
+        def collect_player():
+            player_names = []
+            player_ids = []
+            player_ids_count = 0
+            allys = html.find_all('rel', 'alliance', 'value')
+            for name in html.find_all('class', 'status_abbr_', 'value'):
+                if name not in ['A', 's', 'n', 'o', 'u', 'g', 'i', 'I', 'ep', ''] and name not in allys:
+                    player_names.append(name)
+                    if self.player != name:
+                        player_ids.append(int(html.find_all('id', 'player', 'attribute')
+                                              [player_ids_count].replace('player', '')))
+                        player_ids_count += 1
+                    else:
+                        player_ids.append(self.player_id)
+            return player_names, player_ids
+
+        def collect_status():
+            stati = []
+            for status in html.find_all('class', 'row', 'attribute')[5:]:
+                if 'rowempty' in status:
+                    continue
+                elif 'row' == status:
+                    stati.append([const.status.active])
+                else:
+                    activitys = []
+                    for activity in [const.status.active, const.status.inactive, const.status.vacation,
+                                     const.status.noob, const.status.honorableTarget]:
+                        if activity in status and activity != 'active':
+                            activitys.append(activity)
+                    stati.append(activitys)
+            return stati
+
+        planets = []
+        for planet_pos, planet_name, planet_player, planet_player_id, planet_status in zip(
+                [int(pos.replace('planet', '')) for pos in html.find_all('rel', 'planet', 'attribute')],
+                html.find_all('class', 'planetname', 'value'),
+                collect_player()[0],
+                collect_player()[1],
+                collect_status()):
 
             class planet_class:
-                planet_name = planet.split('<h1>Planet:')[1][26:50].split('<')[0]
-                coordinates = const.coordinates(int(coordinates_raw[0]), int(coordinates_raw[1]),
-                                                int(coordinates_raw[2]))
-                player = None
-                status = None
-                if '<span class="status_abbr_active">' in planet:
-                    player = planet.split('<span class="status_abbr_active">')[1].split('<')[0]
-                    status = 'active'
-                if '<span class="status_abbr_inactive">' in planet:
-                    player = planet.split('<span class="status_abbr_inactive">')[1].split('<')[0]
-                    status = 'inactive'
-                elif '<span class="status_abbr_longinactive">' in planet:
-                    player = planet.split('<span class="status_abbr_longinactive">')[1].split('<')[0]
-                    status = 'longinactive'
-                elif '<span class="status_abbr_vacation">' in planet:
-                    player = planet.split('<span class="status_abbr_vacation">')[1].split('<')[0]
-                    status = 'vacation'
-                elif '<span class="status_abbr_admin">' in planet:
-                    player = planet.split('<span class="status_abbr_admin">')[1].split('<')[0]
-                    status = 'admin'
-                elif '<span class="status_abbr_honorableTarget">' in planet:
-                    player = planet.split('<span class="status_abbr_honorableTarget">')[1].split('<')[0]
-                    status = 'honorableTarget'
-                elif '<span class="status_abbr_noob">' in planet:
-                    player = planet.split('<span class="status_abbr_noob">')[1].split('<')[0]
-                    status = 'noob'
-                if '<div class="moon_a"' in planet:
+                position = [coordinates[0], coordinates[1], planet_pos]
+                name = planet_name
+                player = planet_player
+                player_id = planet_player_id
+                status = planet_status
+                if planet_pos in moons:
                     moon = True
                 else:
                     moon = False
-                list = [planet_name, coordinates, player, status, moon]
+                list = [name, position, player, player_id, status, moon]
+            planets.append(planet_class)
+        return planets
 
-            planet_info.append(planet_class)
-        return planet_info
+    def ally(self):
+        return self.landing_page.find_all('name', 'ogame-alliance-name', 'attribute', 'content')
 
-    def get_ally(self):
-        ally_name = None
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=alliance'
-                                    .format(self.server_number, self.server_language)).text
-        marker_string = '<meta name="ogame-alliance-name" content="'
-        for re_obj in re.finditer(marker_string, response):
-            ally_name = response[re_obj.start() + len(marker_string): re_obj.end() + 10].split('"')[0]
-        return ally_name
-
-    def get_officers(self):
+    def officers(self):
         raise Exception("function not implemented yet PLS contribute")
 
-    def get_shop(self):
+    def shop(self):
         raise Exception("function not implemented yet PLS contribute")
 
-    def get_fleet(self):
-        fleets_list = []
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                    'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1'
-                                    .format(self.server_number, self.server_language),
-                                    headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        if response['friendly'] != 0:
-            response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                        'component=movement'
-                                        .format(self.server_number, self.server_language)).text
-
-            events = response.split('class="fleetinfo"')
-            del events[0]
-            fleets = response.split('<div id="fleet')
-            del fleets[0]
-
-            for fleet, event in zip(fleets, events):
-                fleet_id = int(fleet[0:30].split('"')[0])
-                fleet_info = event.split('</table>')[0].split('<td')
-                del fleet_info[0]
-                remove_chars = ['>', "\n", ' ', ':</td', 'class="value"', '</td</tr<tr', '0</td</tr', '</td</tr',
-                                ':</th</tr<tr', 'colspan="2"&nbsp;<thcolspan="2"']
-                for char in remove_chars:
-                    fleet_info = [s.replace(char, '') for s in fleet_info]
-                try:
-                    fleet_info.remove('')
-                except:
-                    pass
-
-                marker = fleet.find('data-mission-type="')
-                fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
-
-                if 'data-return-flight="1"' in fleet:
-                    fleet_return = True
-                else:
-                    fleet_return = False
-
-                marker = fleet.find('<span class="timer tooltip" title="')
-                fleet_arrival = datetime.strptime(fleet[marker + 35: marker + 54], '%d.%m.%Y %H:%M:%S')
-
-                marker = fleet.find('<span class="originCoords tooltip" title="')
-                origin_raw = fleet[marker: marker + 180]
-                origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
-                fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
-                marker = fleet.find('<span class="destinationCoords')
-                destination_raw = fleet[marker: marker + 200]
-                destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
-                fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
-
-                class fleets_class:
-                    id = fleet_id
-                    ships = fleet_info
-                    mission = fleet_mission
-                    returns = fleet_return
-                    arrival = fleet_arrival
-                    origin = fleet_origin
-                    destination = fleet_destination
-                    list = [fleet_id, fleet_info, fleet_mission, fleet_return, fleet_arrival, fleet_origin,
-                            fleet_destination]
-
-                fleets_list.append(fleets_class)
-            return fleets_list
-        else:
+    def fleet(self):
+        response = self.session.get(
+            url=self.index_php + 'page=componentOnly&component=eventList&action=fetchEventBox&ajax=1&asJson=1',
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
+        if response['friendly'] == 0:
             return []
-
-    def get_phalanx(self, coordinates, id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                    'page=phalanx&galaxy={}&system={}&position={}&ajax=1&cp={}'
-                                    .format(self.server_number, self.server_language,
-                                            coordinates[0], coordinates[1], coordinates[2], id)).text
-        fleets_list = []
-        fleets = response.split('<div class="eventFleet" id="eventRow-')
-        del fleets[0]
-        for fleet in fleets:
-            fleet_id = fleet[0:30].split('"')[0]
-            marker = fleet.find('data-mission-type="')
-            fleet_mission = int(fleet[marker + 19: marker + 22].split('"')[0])
-            if 'data-return-flight="true"' in fleet:
-                fleet_return = True
-            else:
-                fleet_return = False
-            marker = fleet.find('<li class="arrivalTime">')
-            fleet_arrival = datetime.combine(datetime.today(),
-                                             datetime.strptime(fleet[marker + 24: marker + 32], '%H:%M:%S').time())
-            marker = fleet.find('<li class="coordsOrigin">')
-            origin_raw = fleet[marker: marker + 230]
-            origin_list = origin_raw.split('[')[1].split(']')[0].split(':')
-            fleet_origin = const.coordinates(origin_list[0], origin_list[1], origin_list[2])
-            marker = fleet.find('<li class="destCoords">')
-            destination_raw = fleet[marker: marker + 250]
-            destination_list = destination_raw.split('[')[1].split(']')[0].split(':')
-            fleet_destination = const.coordinates(destination_list[0], destination_list[1], destination_list[2])
+        response = self.session.get(self.index_php + 'page=ingame&component=movement').text
+        html = OGame2.HTML(response)
+        missions = len(html.find_all('id', 'fleet', 'attribute'))
+        fleets = []
+        for fleet_id, fleet_mission, fleet_returns, fleet_arrival, fleet_origin, fleet_destination in zip(
+                html.find_all('id', 'fleet', 'attribute'),
+                html.find_all('data-mission-type', '', 'attribute')[-missions:],
+                html.find_all('data-return-flight', '', 'attribute')[-missions:],
+                html.find_all('data-arrival-time', '', 'attribute')[0:missions],
+                [html.find_all('href', '&componentgalaxy&galaxy', 'value')[i] for i in range(0, missions * 2, 2)],
+                [html.find_all('href', '&componentgalaxy&galaxy', 'value')[i] for i in range(1, missions * 2, 2)]):
 
             class fleets_class:
-                id = fleet_id
-                mission = fleet_mission
-                returns = fleet_return
-                arrival = fleet_arrival
-                origin = fleet_origin
-                destination = fleet_destination
-                list = [fleet_id, fleet_mission, fleet_return, fleet_arrival, fleet_origin, fleet_destination]
+                id = int(fleet_id.replace('fleet', ''))
+                mission = int(fleet_mission)
+                if fleet_returns == '1':
+                    returns = True
+                else:
+                    returns = False
+                arrival = datetime.fromtimestamp(int(fleet_arrival))
+                origin = const.convert_to_coordinates(fleet_origin)
+                destination = const.convert_to_coordinates(fleet_destination)
+                list = [id, mission, returns, arrival, origin, destination]
 
-            fleets_list.append(fleets_class)
-        return fleets_list
+            fleets.append(fleets_class)
+        return fleets
+
+    def phalanx(self, coordinates, id):
+        response = self.session.get(
+            url=self.index_php + 'page=phalanx&galaxy={}&system={}&position={}&ajax=1&cp={}'
+            .format(coordinates[0], coordinates[1], coordinates[2], id)
+        ).text
+        html = OGame2.HTML(response)
+        missions = len(html.find_all('id', 'eventRow-', 'attribute'))
+        fleets = []
+        for fleet_id, fleet_mission, fleet_returns, fleet_arrival, fleet_origin, fleet_destination in zip(
+                html.find_all('id', 'eventRow-', 'attribute'),
+                html.find_all('data-mission-type', '', 'attribute'),
+                html.find_all('data-return-flight', '', 'attribute'),
+                html.find_all('data-arrival-time', '', 'attribute'),
+                [html.find_all('class', 'dark_highlight_tablet', 'value')[i] for i in range(0, missions * 3, 3)],
+                [html.find_all('class', 'dark_highlight_tablet', 'value')[i] for i in range(2, missions * 3, 3)]):
+
+            class fleets_class:
+                id = int(fleet_id.replace('eventRow-', ''))
+                mission = int(fleet_mission)
+                if fleet_returns == 'true':
+                    returns = True
+                else:
+                    returns = False
+                arrival = datetime.fromtimestamp(int(fleet_arrival))
+                origin = const.convert_to_coordinates(fleet_origin)
+                destination = const.convert_to_coordinates(fleet_destination)
+                list = [id, mission, returns, arrival, origin, destination]
+
+            fleets.append(fleets_class)
+        return fleets
+
+    def messages(self, message_type, page):
+        form_data = {'messageId': -1,
+                     'tabid': message_type,
+                     'action': 107,
+                     'pagination': page,
+                     'ajax': 1}
+        response = self.session.post(
+            url=self.index_php + 'page=messages',
+            data=form_data
+        ).text
+        html = OGame2.HTML(response)
+        return html
 
     def send_message(self, player_id, msg):
+        response = self.session.get(self.index_php + 'page=chat').text
+        html = OGame2.HTML(response)
+        for line in html.find_all('type', 'textjavascript', 'value'):
+            if 'ajaxChatToken' in line:
+                chat_token = line.split('ajaxChatToken=')[1].split('"')[1]
+                break
         form_data = {'playerId': player_id,
                      'text': msg,
                      'mode': 1,
                      'ajax': 1,
-                     'token': self.chat_token}
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?'
-                                     'page=ajaxChat'.format(self.server_number, self.server_language),
-                                     data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        self.chat_token = response['newToken']
+                     'token': chat_token}
+        response = self.session.post(
+            url=self.index_php + 'page=ajaxChat',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}
+        ).json()
+        if 'OK' in response['status']:
+            return True
+        else:
+            return False
+
+    def spyreports(self):
+        html = OGame2.messages(self, const.messages.spy_reports, 1)
+        spyreports = []
+        for message in html.find_all('data-msg-id', '', 'attribute'):
+            response = self.session.get(
+                url=self.index_php + 'page=messages&messageId={}&tabid={}&ajax=1'
+                .format(message, const.messages.spy_reports)
+            ).text
+            spy_html = OGame2.HTML(response)
+            fright = spy_html.find_all('class', 'fright', 'value')
+            fright.pop()
+            if len(fright) > 10:  # non Spyreports are less than 10
+
+                class spy_report_class:
+                    id = message
+                    coordinates = const.convert_to_coordinates(response)
+                    if spy_html.find_all('class', 'planetIcon', 'attribute') is not []:
+                        coordinates.append(const.destination.planet)
+                    else:
+                        coordinates.append(const.destination.moon)
+                    time = datetime.strptime(fright[5], '%d.%m.%Y%H:%M:%S')
+                    resources = spy_html.find_all('class', 'resource_list', 'attribute', 'title')
+                    resources = [resources[0], resources[1], resources[2]]
+                    resources = [int(resource.replace('.', '')) for resource in resources]
+                    tech = []
+                    fleets = spy_html.find_all('class', 'tech', 'attribute')
+                    for fleet in fleets:
+                        tech.append(const.convert_tech(int(fleet.replace('tech', '')), 'shipyard'))
+                    defences = spy_html.find_all('class', 'defense', 'attribute')
+                    for defence in defences:
+                        if defence != 'defense_imagefloat_left':
+                            tech.append(const.convert_tech(int(defence.replace('defense', '')), 'defenses'))
+                    buildings = spy_html.find_all('class', 'building', 'attribute')
+                    for building in buildings:
+                        if building != 'building_imagefloat_left':
+                            tech.append(const.convert_tech(int(building.replace('building', '')), 'supplies'))
+                    researchings = spy_html.find_all('class', 'research', 'attribute')
+                    for research in researchings:
+                        if research != 'research_imagefloat_left':
+                            tech.append(const.convert_tech(int(research.replace('research', '')), 'research'))
+                    technology = dict((tech, amount) for tech, amount in zip(tech, fright[7:]))
+                    list = [id, time, coordinates, resources, technology]
+
+                spyreports.append(spy_report_class)
+        return spyreports
 
     def send_fleet(self, mission, id, where, ships, resources=[0, 0, 0], speed=10, holdingtime=0):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component=fleetdispatch&cp={}'
-                                    .format(self.server_number, self.server_language, id)).text
-        OGame2.get_init_sendfleetroken(self, response)
-
-        form_data = {'token': self.sendfleet_token}
-
+        response = self.session.get(self.index_php + 'page=ingame&component=fleetdispatch&cp={}'.format(id)).text
+        html = OGame2.HTML(response)
+        sendfleet_token = None
+        for line in html.find_all('type', 'textjavascript', 'value'):
+            if 'var fleetSendingToken' in line:
+                sendfleet_token = line.split('var fleetSendingToken = ')[1].split('"')[1]
+                break
+        form_data = {'token': sendfleet_token}
         for ship in ships:
             ship_type = 'am{}'.format(ship[0])
             form_data.update({ship_type: ship[1]})
-
         form_data.update({'galaxy': where[0],
                           'system': where[1],
                           'position': where[2],
@@ -831,35 +858,33 @@ class OGame2(object):
                           'retreatAfterDefenderRetreat': 0,
                           'union': 0,
                           'holdingtime': holdingtime})
-
-        response = self.session.post('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                     'component=fleetdispatch&action=sendFleet&ajax=1&asJson=1'
-                                     .format(self.server_number, self.server_language), data=form_data,
-                                     headers={'X-Requested-With': 'XMLHttpRequest'}).json()
+        response = self.session.post(
+            url=self.index_php + 'page=ingame&component=fleetdispatch&action=sendFleet&ajax=1&asJson=1',
+            data=form_data,
+            headers={'X-Requested-With': 'XMLHttpRequest'}).json()
         return response['success']
 
     def return_fleet(self, fleet_id):
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&component=movement&'
-                                    'return={}'.format(self.server_number, self.server_language, fleet_id))
+        self.session.get(self.index_php + 'page=ingame&component=movement&return={}'.format(fleet_id))
 
     def build(self, what, id):
         type = what[0]
         amount = what[1]
         component = what[2]
-        response = self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&'
-                                    'component={}&cp={}'
-                                    .format(self.server_number, self.server_language, component, id)).text
-        OGame2.get_init_build_token(self, response, component)
+        response = self.session.get(self.index_php + 'page=ingame&component={}&cp={}'.format(component, id)).text
+        html = OGame2.HTML(response)
+        build_token = None
+        for line in html.find_all('type', 'javascript', 'value'):
+            if 'urlQueueAdd' in line:
+                build_token = line.split('token=')[1].split('\'')[0]
+                break
+        build_url = self.index_php + 'page=ingame&component={}&modus=1&token={}&type={}&menge={}' \
+            .format(component, build_token, type, amount)
+        self.session.get(build_url)
 
-        build_url = 'https://s{}-{}.ogame.gameforge.com/game/index.php?page=ingame&' \
-                    'component={}&modus=1&token={}&type={}&menge={}' \
-            .format(self.server_number, self.server_language, component, self.build_token, type, amount)
-        response = self.session.get(build_url)
-
-    def research(self, research, id):
+    def do_research(self, research, id):
         OGame2.build(self, research, id)
 
     def logout(self):
-        self.session.get('https://s{}-{}.ogame.gameforge.com/game/index.php?page=logout'
-                         .format(self.server_number, self.server_language))
+        self.session.get(self.index_php + 'page=logout')
         return exit()
