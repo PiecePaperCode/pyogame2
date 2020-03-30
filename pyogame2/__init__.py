@@ -476,7 +476,7 @@ class OGame2(object):
         else:
             return False
 
-    def submit_marketplace(self, offer, price, id):
+    def submit_marketplace(self, offer, price, range, id):
         ItemId = None
         quantity = None
         priceType = None
@@ -504,7 +504,7 @@ class OGame2(object):
                      'quantity': quantity,
                      'priceType': priceType,
                      'price': price_form,
-                     'priceRange': 10}
+                     'priceRange': range}
         response = self.session.post(
             url=self.index_php + 'page=ingame&component=marketplace&tab=create_offer&action=submitOffer&asJson=1',
             data=form_data,
@@ -520,6 +520,7 @@ class OGame2(object):
         history_pages = ['history_buying', 'history_selling']
         action = ['fetchHistoryBuyingItems', 'fetchHistorySellingItems']
         collect = ['collectItem', 'collectPrice']
+        response = False
         for page, action, collect in zip(history_pages, action, collect):
             response = self.session.get(
                 url=self.index_php + 'page=ingame&component=marketplace&tab={}&action={}&ajax=1&pagination%5Bpage%5D=1'
@@ -538,7 +539,13 @@ class OGame2(object):
                     data=form_data,
                     headers={'X-Requested-With': 'XMLHttpRequest'}
                 ).json()
-            print(response)
+
+        if not to_collect_market_ids:
+            return False
+        elif response['status'] == 'success':
+            return True
+        else:
+            return False
 
     def traider(self, id):
         raise Exception("function not implemented yet PLS contribute")
@@ -771,6 +778,7 @@ class OGame2(object):
     def send_message(self, player_id, msg):
         response = self.session.get(self.index_php + 'page=chat').text
         html = OGame2.HTML(response)
+        chat_token = None
         for line in html.find_all('type', 'textjavascript', 'value'):
             if 'ajaxChatToken' in line:
                 chat_token = line.split('ajaxChatToken=')[1].split('"')[1]
@@ -867,7 +875,6 @@ class OGame2(object):
             url=self.index_php + 'page=ingame&component=fleetdispatch&action=sendFleet&ajax=1&asJson=1',
             data=form_data,
             headers={'X-Requested-With': 'XMLHttpRequest'}).json()
-        print(sendfleet_token, response)
         return response['success']
 
     def return_fleet(self, fleet_id):
@@ -890,6 +897,12 @@ class OGame2(object):
 
     def do_research(self, research, id):
         OGame2.build(self, research, id)
+
+    def collect_rubble_field(self, id):
+        self.session.get(
+            url='{}page=ajax&component=repairlayer&component=repairlayer&ajax=1&action=startRepairs&asJson=1&cp={}'
+            .format(self.index_php, id),
+            headers={'X-Requested-With': 'XMLHttpRequest'})
 
     def logout(self):
         self.session.get(self.index_php + 'page=logout')

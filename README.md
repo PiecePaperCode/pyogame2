@@ -6,7 +6,7 @@ two million accounts.
 
 This lib is supposed to help write scripts and bots for your needs.
 it supports ogame_version: `7.2.1`
-version `11`
+version `12`
 
 ## install
 <pre>
@@ -124,16 +124,14 @@ res.resources                           returns resources
 res.day_production                      returns resources
 res.darkmatter                          returns int
 res.energy                              returns int
-
-WILL BE REMOVED
-res.metal
-res.crystal
-res.deuterium
+res.metal                               returns int
+res.crystal                             returns int
+res.deuterium                           returns int
 </pre>
 
 ### get supply
 <pre>
-empire.supply(id)                   returns class(object)
+empire.supply(id)                       returns class(object)
 
 sup = empire.supply(id)
 
@@ -173,7 +171,18 @@ fac.repair_dock
 
 ### get moon facilities
 <pre>
-empire.moon_facilities(id)          returns class(object) 
+empire.moon_facilities(id)              returns class(object) 
+
+fac = empire.moon_facilities(id) 
+fac.robotics_factory.level              returns int
+fac.robotics_factory.is_possible        returns bool (possible to build)
+fac.robotics_factory.in_construction    returns bool
+fac.robotics_factory.cost               returns resources
+
+fac.shipyard
+fac.moon_base
+fac.sensor_phalanx 
+fac.jump_gate
 </pre>
 
 ### get marketplace
@@ -209,20 +218,23 @@ you can sell resources and ships.
 Note that you can sell one ship or one resources at at time.
 run a for loop if you wanna stack offerings.
 If the Market accepts your offer depends on your price and availability on your id_planet
+range cant be 0
 </pre>
 <pre>
 empire.submit_marketplace(offer, 
                           price, 
-                          id)           returns bool
+                          id,
+                          range)       returns bool
 
 empire.submit_marketplace(offer=resources(metal=100),
                           price=resources(crystal=50),
-                          id=id
-
+                          id=id,
+                          range=10)
 
 empire.submit_marketplace(offer=ships.large_transporter(10),
                           price=resources(crystal=96000),
-                          id=id)
+                          id=id,
+                          range=10)
 </pre>
 
 ### collect marketplace
@@ -312,7 +324,6 @@ for planet in empire.galaxy(coordinates(randint(1,6), randint(1,499))):
     print(planet.name, planet.position, planet.player, planet.player_id, planet.status, planet.moon)
     if status.inactive in planet.status:
         #Farm Inactive
-
 ```        
 
 ### get ally
@@ -368,7 +379,6 @@ for spyreport in empire.spyreports():
     if buildings.metal_mine in spyreports.technology:
         print(spyreport.technology[buildings.metal_mine])
 ```
-
 
 ### send fleet
 ```python
@@ -486,6 +496,13 @@ research.armor
 ```
 <pre>                 
                                         returns None
+</pre>
+
+### collect rubble field
+<pre> 
+this will collect your rubble field at the planet id.
+                
+empire.collect_rubble_field(id)         returns None
 </pre>
 
 ### logout
